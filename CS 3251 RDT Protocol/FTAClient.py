@@ -108,6 +108,7 @@ class FTAClient():
     """
     def connect(serverIP, port):
         self.serverIPAddr, self.serverPort = serverIP, port
+        d_print("Called connect")
         pass
     
     
@@ -118,6 +119,7 @@ class FTAClient():
     @return    1 if successful;    -1 if not successful
     """
     def get(file):
+        d_print("Called get with file name: " + file)
         pass
         
         
@@ -129,6 +131,7 @@ class FTAClient():
     @return    1 if successful; -1 if not successful
     """
     def post(file):
+        d_print("Called post with file name: " + file)
         pass
     
     
@@ -139,6 +142,7 @@ class FTAClient():
     @param size - The size of the client's receiving window (in segments)
     """
     def window(size):
+        d_print("Called window with size: " + size)
         pass
     
     
@@ -147,6 +151,7 @@ class FTAClient():
     Closes the connection with the server and exits the client application
     """        
     def terminate():
+        d_print("Called terminate")
         pass
     
     
