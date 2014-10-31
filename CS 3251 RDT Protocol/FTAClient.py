@@ -212,6 +212,7 @@ def checkArgs(argsv):
     args = argsv.split(" ")
 
     if len(args) < 3 or len(args) > 4:
+        d_print("Incorrect number of args")
         return -1
     
     client_port = args[0]
@@ -225,6 +226,7 @@ def checkArgs(argsv):
     if ( client_port % 2 != 0 or client_port < 0 or client_port >65535
           or addr_regex.match(emu_addr) == None
           or emu_port < 0 or emu_port > 65535):
+        d_print("Invalid arguments inputted")
         return -1
     
     return 1
