@@ -19,12 +19,23 @@ class FTAClient():
         self.serverIPAddr = None            #Will be defined by connect() method
         self.serverPort = None
         self.connected = False              #Indicates whether the client is connected to the server at this time
-        
-        self.showCommands()
-        self.listen()
     
     """
-    Listens for commands from the user once the client has been setup
+    Should be called to start the FTA Client. Loops listen until listen returns -1
+    """
+    def start(self):
+        not_terminate = True
+        
+        while not_terminate:   
+            self.showCommands()
+            not_terminate = self.listen()
+            
+            
+            
+    """
+    Listens for commands from the user once the client has been setup. Should be called continuously until
+    the disconnect command has been given.
+    @return     False if disconnect command was given; True otherwise
     """
     def listen():
         input = raw_input("Enter command to perform ")
@@ -34,6 +45,13 @@ class FTAClient():
             eval(cmd)
         except:
             print "Something went wrong"
+            return False
+        
+        if cmd == "self.disconnect()":
+            return False
+        
+        return True
+
         
     
     """
