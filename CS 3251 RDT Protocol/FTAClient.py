@@ -42,7 +42,7 @@ class FTAClient():
     @return     False if disconnect command was given; True otherwise
     """
     def __listen(self):
-        input = raw_input("Enter command to perform: \t")
+        input = raw_input("Enter command to perform: ")
         cmd = input.split(" ")[0].lower()
         
         if not cmd or cmd not in self.commands:
@@ -50,56 +50,27 @@ class FTAClient():
             return True
         
         if cmd == "disconnect":
-            self.disconnect()
+            self.terminate()
             return False
         
         #The following commands take arguments
-        arg = input.split[" "][1]
+        arg = input.split(" ")[1]
         
         if cmd == "connect":
             addr, port = arg.split(":")
-            self.connect(addr, port)
+            self.connect(addr, int(port))
         
         if cmd == "get":
             self.get(arg)
         
         if cmd == "post":
-            self.get(arg)
+            self.post(arg)
             
-        else:   #window was called
-            self.window(arg)
+        if cmd == "window":   #window was called
+            self.window(int(arg))
         
         return True
-
-        
-    
-    """
-    Private method to parse commands given from user input. Calls showCommands() if invalid input given
-    @param input - The user input 
-    @return string calling the correct command. 
-    """
-    def __checkCmd(self, input):
-        cmd = input.split(" ")[0].lower()
-        commands = ["connect", "get", "post", "window", "disconnect"]
-        
-        if not cmd or cmd not in self.commands:
-            print "Invalid command"
-            return
-        
-        if cmd == "disconnect":
-            return "self.disconnect()"
-        
-        arg = input.split[" "][1]
-        
-        if cmd == "connect":
-            addr, port = arg.split(":")
-            return "self.%s(%d,%d)" % (cmd, addr, port)
-        
-        if cmd == "get" or cmd == "post":
-            return "self.%s(%s)" % (cmd, arg)
-            
-        else:   #window was called
-            return "self.%s(%d)" % (cmd, arg)   
+  
     
             
         
@@ -125,10 +96,10 @@ class FTAClient():
     The server port as specified by the assignment will be one more than the client
     port number (as specified by the assignment)
     """
-    def connect(serverIP, port):
+    def connect(self, serverIP, port):
         self.serverIPAddr, self.serverPort = serverIP, port
         self.connected = True
-        d_print("Called connect")
+        d_print("Called connect with IP: " + serverIP + " and port: " + str(port))
         pass
     
     
@@ -138,7 +109,7 @@ class FTAClient():
     @param file - The full file name to download to the client
     @return    1 if successful;    -1 if not successful
     """
-    def get(file):
+    def get(self, file):
         d_print("Called get with file name: " + file)
         pass
         
@@ -150,7 +121,7 @@ class FTAClient():
     @param file - The full file name to upload to the server
     @return    1 if successful; -1 if not successful
     """
-    def post(file):
+    def post(self, file):
         d_print("Called post with file name: " + file)
         pass
     
@@ -161,8 +132,8 @@ class FTAClient():
     Sets the maximum client receiving window to the specified size
     @param size - The size of the client's receiving window (in segments)
     """
-    def window(size):
-        d_print("Called window with size: " + size)
+    def window(self, size):
+        d_print("Called window with size: " + str(size))
         pass
     
     
@@ -170,7 +141,7 @@ class FTAClient():
     """
     Closes the connection with the server and exits the client application
     """        
-    def terminate():
+    def terminate(self):
         d_print("Called terminate")
         pass
     
