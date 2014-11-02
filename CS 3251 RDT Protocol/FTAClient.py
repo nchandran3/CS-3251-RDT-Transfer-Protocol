@@ -1,6 +1,7 @@
 import sys
+import getopt
 
-DEBUG = FALSE;
+DEBUG = False;
 
 def d_print(string):
     if DEBUG:
@@ -14,11 +15,14 @@ class FTAClient():
     def __init__(self, port, emuIPAddr, emuPort):
         self.IPAddr = "127.0.0.1"
         self.port = port
-        self.emuIPAddr = emuAddr
-        self.emuPort = emuport
+        self.emuIPAddr = emuIPAddr
+        self.emuPort = emuPort
         self.serverIPAddr = None            #Will be defined by connect() method
         self.serverPort = None
         self.connected = False              #Indicates whether the client is connected to the server at this time
+        
+        self.commands = ["connect", "get", "post", "window", "disconnect"]
+
     
     """
     Should be called to start the FTA Client. Loops listen until listen returns -1
@@ -28,7 +32,7 @@ class FTAClient():
         
         while not_terminate:   
             self.showCommands()
-            not_terminate = self.listen()
+            not_terminate = self.__listen()
             
             
             
@@ -37,18 +41,33 @@ class FTAClient():
     the disconnect command has been given.
     @return     False if disconnect command was given; True otherwise
     """
-    def listen():
-        input = raw_input("Enter command to perform ")
-        cmd = self.__checkCmd(input)
+    def __listen(self):
+        input = raw_input("Enter command to perform: \t")
+        cmd = input.split(" ")[0].lower()
         
-        try:
-            eval(cmd)
-        except:
-            print "Something went wrong"
+        if not cmd or cmd not in self.commands:
+            print "Invalid command"
+            return True
+        
+        if cmd == "disconnect":
+            self.disconnect()
             return False
         
-        if cmd == "self.disconnect()":
-            return False
+        #The following commands take arguments
+        arg = input.split[" "][1]
+        
+        if cmd == "connect":
+            addr, port = arg.split(":")
+            self.connect(addr, port)
+        
+        if cmd == "get":
+            self.get(arg)
+        
+        if cmd == "post":
+            self.get(arg)
+            
+        else:   #window was called
+            self.window(arg)
         
         return True
 
@@ -63,9 +82,9 @@ class FTAClient():
         cmd = input.split(" ")[0].lower()
         commands = ["connect", "get", "post", "window", "disconnect"]
         
-        if not cmd or cmd not in commands:
+        if not cmd or cmd not in self.commands:
             print "Invalid command"
-            return "self.showCommands()"
+            return
         
         if cmd == "disconnect":
             return "self.disconnect()"
@@ -108,6 +127,7 @@ class FTAClient():
     """
     def connect(serverIP, port):
         self.serverIPAddr, self.serverPort = serverIP, port
+        self.connected = True
         d_print("Called connect")
         pass
     
@@ -163,7 +183,7 @@ def usage():
     print """
     Usage: FTAClient X A P [flags]
     
-    X:    The port number at which the FTA Client should bind to (even number) between 0 and 65535. This number should be equal to the server's port number + 1.
+    X:    The port number at which the FTA Client should bind to (even number) between 0 and 65535. Should be server port # + 1.
     A:    IP Address of the Network Emulator in form xxx.xxx.xxx.xxx
     P:    UDP Port Number of the Network Emulator (between 0 and 65535)
     
@@ -174,31 +194,6 @@ def usage():
     
     """   
     
-"""
-Main method that handles parsing the command line arguments and receiving commands such as 
-download, upload, etc. 
-"""
-def main(argv):
-    try:
-        opts, args = getopt.getopt(argv, "d", ["debug"])
-    
-    except getopt.GetoptError:
-        usage()
-        sys.exit(2)
-    
-    for opt, args in opts:
-        if opt in ("-d", "--debug"):
-            DEBUG = True
-    
-    if checkArgs(argv) < 0:     #something was wrong with the arguments given
-        usage()
-        sys.exit(2)
-    
-    client_port = argv[0]
-    emu_addr = argv[1]
-    emu_port = argv[2]
-    
-    client = FTAClient(client_port, emu_addr, emu_port)
     
 
     
@@ -209,15 +204,18 @@ Checks command line arguments for proper form
 @return    1 if no errors; -1 if error found
 """
 def checkArgs(argsv):
-    args = argsv.split(" ")
-
-    if len(args) < 3 or len(args) > 4:
+    if len(argsv) < 3 or len(argsv) > 4:
         d_print("Incorrect number of args")
         return -1
     
-    client_port = args[0]
-    emu_addr = args[1]
-    emu_port = args[2]
+    try:
+        client_port = int(argsv[0])
+        emu_addr = argsv[1]
+        emu_port = int(argsv[2])
+                
+    except:
+        print "Incorrect formatting on arguments"    
+        return -1
     
     #check to make sure all args are in correct format
     import re
@@ -226,7 +224,7 @@ def checkArgs(argsv):
     if ( client_port % 2 != 0 or client_port < 0 or client_port >65535
           or addr_regex.match(emu_addr) == None
           or emu_port < 0 or emu_port > 65535):
-        d_print("Invalid arguments inputted")
+        print "Invalid arguments received" 
         return -1
     
     return 1
@@ -236,7 +234,28 @@ def checkArgs(argsv):
 
 
 
-
+"""
+Main method that handles parsing the command line arguments and receiving commands such as 
+download, upload, etc. 
+"""
+def main(argv):
+    if checkArgs(argv) < 0:     #something was wrong with the arguments given
+        usage()
+        sys.exit(2)
+    
+    client_port = argv[0]
+    emu_addr = argv[1]
+    emu_port = argv[2]
+    
+      
+    global DEBUG        #starts out as False initially
+    if len(argv) == 4:
+        flag = argv[3]
+        DEBUG = flag in ("-d", "--debug")
+        d_print("Debugging enabled")
+    
+    client = FTAClient(client_port, emu_addr, emu_port)
+    client.start()
 
 
 
