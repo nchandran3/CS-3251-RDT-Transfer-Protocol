@@ -3,4 +3,230 @@ Created on Oct 31, 2014
 
 @author: Michael Carlson
 '''
-##why is this not working
+import sys
+
+DEBUG = False;
+
+def d_print(string):
+    if DEBUG:
+        print "###DEBUG###: " + string
+
+"""
+Functionality of File Transfer Application Server
+"""
+class FTAServer():
+
+    def __init__(self, port, emuIPAddr, emuPort):
+        self.IPAddr = "127.0.0.1"
+        self.port = port
+        self.emuIPAddr = emuIPAddr
+        self.emuPort = emuPort
+        self.clientIPAddr = None            #Will be defined by connect() method
+        self.clientPort = None
+        self.connected = False              #Indicates server/client connection
+        self.commands = ["listen", "get", "send", "disconnect"]
+
+
+    def start(self):
+        not_terminate = True
+
+        while not_terminate:
+            self.showCommands()
+            not_terminate = self.__listen()
+
+
+
+    """
+    Waits for command from the server's user.
+    @return     False if disconnect command was given; True otherwise
+    """
+    def __listen(self):
+        input = raw_input("Enter command to perform: ")
+        cmd = input.split(" ")[0].lower()
+
+        if not cmd or cmd not in self.commands:
+            print "Invalid command"
+            return True
+
+        if cmd == "disconnect":
+            self.terminate()
+            return False
+
+        #The following commands take arguments
+        arg = input.split(" ")[1]
+
+        if cmd == "listen":
+            addr, port = arg.split(":")
+            self.listen()
+
+        if cmd == "get":
+            self.get(arg)
+
+        if cmd == "send":
+            self.send(arg)
+
+
+        return True
+
+
+
+
+    """
+    Shows available client commands once the client has been started
+    """
+    def showCommands(self):
+        print """
+        Commands:
+        -----------------------------
+        connect        - connect to the FTA Client
+        get    f       - Download file with filename {f} to the server
+        send   f       - Upload file with filename {f} to the client
+        disconnect     - Disconnect from the FTA Client and exit or start listening
+
+        """
+
+
+
+    """
+    Funciton initiating the listening state for the server. The client should send a
+    packet containing a hello and the clietn IP, port and the window size. The server
+    Port will be one more than the client.
+    """
+    def connect(self, clientIP, port):
+        self.clientIPAddr, self.clientPort = clientIP, port
+        d_print("Called listen waiting for client to attempt connection")
+        pass
+
+
+
+    """
+    Downloads a file from the server
+    @param file - The full file name to download to the client
+    @return    1 if successful;    -1 if not successful
+    """
+    def get(self, file):
+        d_print("Called get with file name: " + file)
+        pass
+
+
+
+
+    """
+    Uploads a file to the client
+    @param file - The full file name to upload to the client
+    @return    1 if successful; -1 if not successful
+    """
+    def send(self, file):
+        d_print("Called send with file name: " + file)
+        pass
+
+
+
+
+    """
+    Sets the maximum server/client receiving window to the specified size
+    @param size - The size of the client/server's receiving window (in segments)
+    """
+    def window(self, size):
+        d_print("Called window with size: " + str(size))
+        pass
+
+
+
+    """
+    Closes the connection with the clients and exits the client application
+    or listens for another client connection
+    """
+    def terminate(self):
+        d_print("Connection terminated... Would you like to (E)xit or (C)ontinue")
+        pass
+
+
+#############################################################################################################
+##################################    END    FTAServer   CLASS    ##########################################
+#############################################################################################################
+
+def usage():
+    print """
+    Usage: FTAServer X A P [flags]
+
+    X:    The port number at which the FTA Server should bind to (odd number) between 0 and 65535. Should be client port # - 1.
+    A:    IP Address of the Network Emulator in form xxx.xxx.xxx.xxx
+    P:    UDP Port Number of the Network Emulator (between 0 and 65535)
+
+    Optional Flags
+    ----------------------
+
+    -d, --debug:    Set this flag to view debug print statements
+
+    """
+
+
+
+
+
+"""
+Checks command line arguments for proper form
+@var argsv - The command line arguments to check for FTA Client
+@return    1 if no errors; -1 if error found
+"""
+def checkArgs(argsv):
+    if len(argsv) < 3 or len(argsv) > 4:
+        d_print("Incorrect number of args")
+        return -1
+
+    try:
+        server_port = int(argsv[0])
+        emu_addr = argsv[1]
+        emu_port = int(argsv[2])
+
+    except:
+        print "Incorrect formatting on arguments"
+        return -1
+
+    #check to make sure all args are in correct format
+    import re
+    addr_regex = re.compile("^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$") #checks for valid IP address
+
+    if ( server_port % 2 != 0 or server_port < 0 or server_port >65535
+          or addr_regex.match(emu_addr) == None
+          or emu_port < 0 or emu_port > 65535):
+        print "Invalid arguments received"
+        return -1
+
+    return 1
+
+
+
+
+
+
+"""
+Main method that handles parsing the command line arguments and receiving commands such as
+download, upload, etc.
+"""
+def main(argv):
+    if checkArgs(argv) < 0:     #something was wrong with the arguments given
+        usage()
+        sys.exit(2)
+
+    server_port = argv[0]
+    emu_addr = argv[1]
+    emu_port = argv[2]
+
+
+    global DEBUG        #starts out as False initially
+    if len(argv) == 4:
+        flag = argv[3]
+        DEBUG = flag in ("-d", "--debug")
+        d_print("Debugging enabled")
+
+    server = FTAServer(server_port, emu_addr, emu_port)
+    server.start()
+
+
+
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
