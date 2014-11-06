@@ -23,8 +23,8 @@ class FTAServer():
         self.emuPort = emuPort
         self.clientIPAddr = None            #Will be defined by connect() method
         self.clientPort = None
-        self.connected = False              #Indicates server/client connection
-        self.commands = ["listen", "get", "send", "disconnect"]
+#         self.connected = False              #Indicates server/client connection
+        self.commands = ["window", "terminate"]
 
 
     def start(self):
@@ -32,7 +32,7 @@ class FTAServer():
 
         while not_terminate:
             self.showCommands()
-            not_terminate = self.__listen()
+            not_terminate = self.__open()
 
 
 
@@ -40,7 +40,7 @@ class FTAServer():
     Waits for command from the server's user.
     @return     False if disconnect command was given; True otherwise
     """
-    def __listen(self):
+    def __open(self):
         input = raw_input("Enter command to perform: ")
         cmd = input.split(" ")[0].lower()
 
@@ -48,23 +48,15 @@ class FTAServer():
             print "Invalid command"
             return True
 
-        if cmd == "disconnect":
+        if cmd == "terminate":
             self.terminate()
             return False
 
         #The following commands take arguments
         arg = input.split(" ")[1]
 
-        if cmd == "listen":
-            addr, port = arg.split(":")
-            self.listen()
-
-        if cmd == "get":
-            self.get(arg)
-
-        if cmd == "send":
-            self.send(arg)
-
+        if cmd == "window":
+            self.window(int(arg))
 
         return True
 
@@ -78,49 +70,10 @@ class FTAServer():
         print """
         Commands:
         -----------------------------
-        connect        - connect to the FTA Client
-        get    f       - Download file with filename {f} to the server
-        send   f       - Upload file with filename {f} to the client
-        disconnect     - Disconnect from the FTA Client and exit or start listening
+        window W       - Max receiver window-size at the FTA-Server = W segments.
+        terminate      - Shuts down FTA-Server smoothly.
 
         """
-
-
-
-    """
-    Funciton initiating the listening state for the server. The client should send a
-    packet containing a hello and the clietn IP, port and the window size. The server
-    Port will be one more than the client.
-    """
-    def connect(self, clientIP, port):
-        self.clientIPAddr, self.clientPort = clientIP, port
-        d_print("Called listen waiting for client to attempt connection")
-        pass
-
-
-
-    """
-    Downloads a file from the server
-    @param file - The full file name to download to the client
-    @return    1 if successful;    -1 if not successful
-    """
-    def get(self, file):
-        d_print("Called get with file name: " + file)
-        pass
-
-
-
-
-    """
-    Uploads a file to the client
-    @param file - The full file name to upload to the client
-    @return    1 if successful; -1 if not successful
-    """
-    def send(self, file):
-        d_print("Called send with file name: " + file)
-        pass
-
-
 
 
     """
@@ -134,11 +87,11 @@ class FTAServer():
 
 
     """
-    Closes the connection with the clients and exits the client application
-    or listens for another client connection
+    Terminates the connection with the clients and exits the client application
+    with utmost grace.
     """
     def terminate(self):
-        d_print("Connection terminated... Would you like to (E)xit or (C)ontinue")
+        d_print("Connection terminated.")
         pass
 
 
@@ -188,7 +141,7 @@ def checkArgs(argsv):
     import re
     addr_regex = re.compile("^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$") #checks for valid IP address
 
-    if ( server_port % 2 != 0 or server_port < 0 or server_port >65535
+    if ( server_port % 2 == 0 or server_port < 0 or server_port >65535
           or addr_regex.match(emu_addr) == None
           or emu_port < 0 or emu_port > 65535):
         print "Invalid arguments received"
