@@ -18,18 +18,7 @@ class RDTPacket():
         
         self.data = None
         
-    def getLength(self):
-        #initial number of bytes the packet should be without flags
-        num_bits = 208
-        
-        if self.SYN:
-            num_bits += 1
-        if self.ACK:
-            num_bits += 1
-        if self.TRM:
-            num_bits += 1
-        
-        return num_bits
+ 
         
 
         
