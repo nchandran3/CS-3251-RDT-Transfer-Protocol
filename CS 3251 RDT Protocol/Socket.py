@@ -4,6 +4,7 @@ except:
     import pickle
 
 import socket
+import sys
 """
 This class implements the RDT protocol and allows the File Transfer Application to perform the following
 functions:
@@ -26,7 +27,10 @@ class Socket:
         self.srcIP = IPAddr
         self.destPort = None        #determined upon connection
         self.destIP = None          #determined upon connection
+        self.CONNECTED = False      #only set to true upon successful connection with server/client
         self.window = 1024          #default, can be changed by calling window(int) in bits
+        self.send_buffer = []       #holds all packets currently awaiting ACKs
+        self.recv_buffer = []       #holds all packets received 
 
     """
     The socket will connect to the given IPAddr and port by implementing the following steps:
@@ -44,8 +48,9 @@ class Socket:
     def connect(self, IPAddr, port):
         self.destIP = IPAddr
         self.destPort = port
+        
 
-
+        self.CONNECTED = True
     def listen(self):
         pass
 
@@ -54,12 +59,40 @@ class Socket:
         
     
     def disconnect(self):
-        pass
+        """
+        Some stuff here
+        """
+        self.CONNECTED = False
     
     
-    def send(self, msg):
+    def send(self, data):
         pass
     
     
     def receive(self):
         pass
+    
+    """
+    Calculates the checksum of the entire packet by implementing the CRC32 algorithm
+    """
+    def __checksum(self, packet):
+        sum = None
+        sys.getsizeof(packet, default)
+        return sum
+    
+    def makePacket(self, data):
+        packet = RDTPacket()
+        packet.data = data
+        
+        packet.srcIP = self.srcIP
+        packet.srcPort = self.srcPort
+        packet.destIP = self.destIP
+        packet.destPort = self.destPort
+        packet.seq_num = None
+        packet.ack_num = None
+        packet.window = self.window
+        packet.SYN = False
+        packet.ACK = False
+        packet.TRM = False
+        packet.checksum = self.__checksum(packet) #must be calculated last because it considers all header fields as well
+        
