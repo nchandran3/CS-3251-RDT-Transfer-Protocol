@@ -35,6 +35,7 @@ class Socket:
         self.send_buffer = []       #holds all packets currently awaiting ACKs
         self.recv_buffer = []       #holds all packets received 
 
+        self.MSS
     """
     The socket will connect to the given IPAddr and port by implementing the following steps:
     1. Send SYN packet - this includes the client's (sender's) initial sequence number and clients's
@@ -124,3 +125,13 @@ class Socket:
         packet.checksum = self.__checksum(packet) #must be calculated last because it considers all header fields as well
         
         return packet
+    
+    
+    """
+    Breaks up a message into message size/MSS packets
+    
+    @param msg:    The entire message or data to turn into RDT packets
+    @return:    The entire string of packets for the message
+    """
+    def __packetize(self, msg_string):
+        num_packets = len(msg_string)/self.MSS
