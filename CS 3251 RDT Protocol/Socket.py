@@ -25,10 +25,13 @@ class Socket:
     def __init__(self, IPAddr, port):
         self.srcPort = port
         self.srcIP = IPAddr
-        self.destPort = None        #determined upon connection
-        self.destIP = None          #determined upon connection
+        self.destPort = None        #determined upon successful connection
+        self.destIP = None          #determined upon successful connection
         self.CONNECTED = False      #only set to true upon successful connection with server/client
+        self.UPLOADING = False      #if the socket is sending data in its packets
+        self.DOWNLOADING = False    #if the socket is receiving data and sending ACKs
         self.window = 1024          #default, can be changed by calling window(int) in bits
+        self.timeout = 1            #default, will change according to max timeout received
         self.send_buffer = []       #holds all packets currently awaiting ACKs
         self.recv_buffer = []       #holds all packets received 
 
@@ -51,24 +54,43 @@ class Socket:
         
 
         self.CONNECTED = True
+        
+    """
+    This method is only to be called on the server file transfer application. Blocks until it receives a SYN packet. It will 
+    then perform the connect process as detailed in the design report.
+    """
     def listen(self):
         pass
 
+    """
+    Changes the window size of the client or server.
+    """
     def window(self, size):
         self.window = size
         
-    
+    """
+    Disconnects the client from the server.
+    """
     def disconnect(self):
         """
         Some stuff here
         """
         self.CONNECTED = False
     
+    """
+    Sends data (in windows) to the other end of the socket. If there is no ACK within the timeout period, resends that 
+    single packet (selective repeat).
     
+    @param data:    The data to be sent to the other end of the socket
+    """
     def send(self, data):
         pass
     
+    """
+    Receives data from the other end of the socket.
     
+    @return    The data received from the other end of the socket
+    """
     def receive(self):
         pass
     
@@ -80,7 +102,12 @@ class Socket:
         sys.getsizeof(packet, default)
         return sum
     
-    def makePacket(self, data):
+    """
+    Creates a RDT Packet with the given data
+    @param data:    The data to be sent in the packet
+    @return     The RDT Packet
+    """
+    def __makePacket(self, data):
         packet = RDTPacket()
         packet.data = data
         
@@ -96,3 +123,4 @@ class Socket:
         packet.TRM = False
         packet.checksum = self.__checksum(packet) #must be calculated last because it considers all header fields as well
         
+        return packet
