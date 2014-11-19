@@ -1,3 +1,9 @@
+try:
+    import cPickle as pickle
+except:
+    import pickle
+
+import socket
 """
 This class implements the RDT protocol and allows the File Transfer Application to perform the following
 functions:
@@ -7,7 +13,7 @@ receive(buffer size)
 
 Internally, it handles all connection setup and teardown as per the specifications on the Implementation Design Report
 """
-
+    
 class Socket:
 
     """
@@ -40,6 +46,20 @@ class Socket:
         self.destPort = port
 
 
+    def listen(self):
+        pass
 
     def window(self, size):
         self.window = size
+        
+    
+    def disconnect(self):
+        pass
+    
+    
+    def send(self, msg):
+        pass
+    
+    
+    def receive(self):
+        pass
