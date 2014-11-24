@@ -38,7 +38,7 @@ class Socket:
         self.send_buffer = []       #holds all packets currently awaiting ACKs
         self.recv_buffer = []       #holds all packets received
 
-        self.MSS
+        self.MSS = 1024
     """
     The socket will connect to the given IPAddr and port by implementing the following steps:
     1. Send SYN packet - this includes the client's (sender's) initial sequence number and clients's
@@ -59,7 +59,7 @@ class Socket:
         #send syn packet
         synPack = self.__makePacket(None)
         synPack.SYN = True                                # mark as SYN RDTPacket
-        synPack.seq_num = (long) (random.uniform(1, (2**(32)- 1)))    #Initial sequence number is random long int
+        synPack.seq_num = random.uniform(1, (2**(32)- 1))    #Initial sequence number is random long int
 
 
         #receive syn-ack
@@ -120,7 +120,7 @@ class Socket:
     """
     Creates a RDT Packet with the given data
     @param data:    The data to be sent in the packet
-    @return     The RDT Packet
+    @return:     The RDT Packet
     """
     def __makePacket(self, data):
         packet = RDTPacket()
@@ -140,7 +140,16 @@ class Socket:
 
         return packet
 
+    def __makeSYNPacket(self):
+        packet = self.__makePacket(None)
+        packet.SYN = True
+        return packet
 
+    def __makeTRMPacket(self):
+        packet = self.__makePacket(None)
+        packet.TRM = True
+        return packet
+    
     """
     Breaks up a message into message size/MSS packets
 
