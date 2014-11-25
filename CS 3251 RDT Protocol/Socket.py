@@ -55,15 +55,22 @@ class Socket:
     def connect(self, IPAddr, port):
         self.destIP = IPAddr
         self.destPort = port
-
+        recdata = " ".join(sys.argv[1:])                              #not sure if needed
         #send syn packet
         synPack = self.__makePacket(None)
-        synPack.SYN = True                                # mark as SYN RDTPacket
-        synPack.seq_num = random.uniform(1, (2**(32)- 1))    #Initial sequence number is random long int
+        synPack.SYN = True                                            # mark as SYN RDTPacket
+        synPack.seq_num = (long) (random.uniform(1, (2**(32)- 1)))    #Initial sequence number is random long int
+        synPack.destIP = IPAddr
+        synPack.destPort = port
 
+        synPack.checksum = self.__checksum(synPack)                   #compute/set checksum (must be last)
+        pickle.dumps(synPack)                                         #serialize the packet for the UDP packet data field
+
+        self.sock.sendto(pickle.dumps(synPack), (IPAddr, port))
 
         #receive syn-ack
-        recDatagram = self.receive()
+        #       recDatagram = self.receive()
+        self.sock.recvfrom(self.recv_buffer)                          #buffer size
 
         #send ack
 
@@ -149,7 +156,7 @@ class Socket:
         packet = self.__makePacket(None)
         packet.TRM = True
         return packet
-    
+
     """
     Breaks up a message into message size/MSS packets
 
