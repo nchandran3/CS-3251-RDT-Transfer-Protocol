@@ -8,6 +8,7 @@ import sys
 import random
 import RDTPacket
 import binascii
+
 """
 This class implements the RDT protocol and allows the File Transfer Application to perform the following
 functions:
@@ -36,9 +37,15 @@ class Socket:
         self.window = 1024          #default, can be changed by calling window(int) in bits
         self.timeout = 1            #default, will change according to max timeout received
         self.send_buffer = []       #holds all packets currently awaiting ACKs
-        self.recv_buffer = []       #holds all packets received
-
+        self.recv_buffer = []       #holds all packets received which haven't been flushed to disk yet
+        self.curr_send_seq_number = None        #The next sent packet will be given this sequence number
+        self.RTT = 1                #equal to the max received RTT so far (1 default)
         self.MSS = 1024
+        
+        self.UDP_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)      #UDP socket for communicating with network emulator
+        socket.bind((self.srcIP, self.srcPort))
+        
+        
     """
     The socket will connect to the given IPAddr and port by implementing the following steps:
     1. Send SYN packet - this includes the client's (sender's) initial sequence number and clients's
@@ -86,9 +93,7 @@ class Socket:
     Disconnects the client from the server.
     """
     def disconnect(self):
-        """
-        Some stuff here
-        """
+        
         self.CONNECTED = False
 
     """
@@ -98,7 +103,9 @@ class Socket:
     @param data:    The data to be sent to the other end of the socket
     """
     def send(self, data):
-        pass
+        packet = self.__makePacket(data)
+        packet_string = pickle.dumps(packet)
+        self.UDP_socket.sendto(packet_string, (self.destIP, self.destPort))
 
     """
     Receives data from the other end of the connection.
