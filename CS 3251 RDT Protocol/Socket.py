@@ -36,50 +36,69 @@ class Socket:
         self.DOWNLOADING = False    #if the socket is receiving data and sending ACKs
         self.window = 1024          #default, can be changed by calling window(int) in bits
         self.timeout = 1            #default, will change according to max timeout received
+
         self.send_buffer = []       #holds all packets currently awaiting ACKs
         self.recv_buffer = []       #holds all packets received which haven't been flushed to disk yet
+
+        self.initial_seq_number = None      #set upon connection
         self.curr_send_seq_number = None        #The next sent packet will be given this sequence number
         self.RTT = 1                #equal to the max received RTT so far (1 default)
-        self.MSS = 1024
-        
+        self.MSS = 1024             #max number of bytes a RDT packet payload can have
+
         self.UDP_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)      #UDP socket for communicating with network emulator
-        socket.bind((self.srcIP, self.srcPort))
-        
-        
+        self.UDP_socket.bind((self.srcIP, self.srcPort))
     """
-    The socket will connect to the given IPAddr and port by implementing the following steps:
-    1. Send SYN packet - this includes the client's (sender's) initial sequence number and clients's
+    The server socket will connect to a given IPAddr and port number if a SYN packet is received
+    by implementing the following steps:
+    1. Extract the sequence number, IP Address and port number from the SYN packet (also validate checksum)
+    2.
+    """
+
+    """
+    The client socket will connect to the given IPAddr and port by implementing the following steps:
+    1. Send SYN packet - this includes the client's initial sequence number and clients's
        receiving window size.
-    2. Receive SYN packet Acknowledgement from the server (receiver) - this includes the server's initial
-       sequence number and the server's maximum receiving window size
-    3. The client will send the Final Acknowledgement to the server
+    2. Receive SYN packet Acknowledgement from the server - this includes the server's initial
+       sequence number and the server's maximum receiving window size. Must also validate checksum
+    3. The client will send an Acknowledgement to the server
 
            Client and server are now connected...
 
     @param IPAddr:    The destination IP address that the socket should connect to
     @param port:     The destination port that the socket should connect to
     """
-    def connect(self, IPAddr, port):
+    def clientConnect(self, IPAddr, port):
         self.destIP = IPAddr
         self.destPort = port
-        recdata = " ".join(sys.argv[1:])                              #not sure if needed
-        #send syn packet
-        synPack = self.__makePacket(None)
-        synPack.SYN = True                                            # mark as SYN RDTPacket
+        recvRDTPacket = self.__makePacket()
+        #1 send syn packet
+        synPack = self.__makeSYNPacket()                                            # mark as SYN RDTPacket
         synPack.seq_num = (long) (random.uniform(1, (2**(32)- 1)))    #Initial sequence number is random long int
-        synPack.destIP = IPAddr
-        synPack.destPort = port
+        self.initial_seq_number = synPack.seq_num
+        self.curr_send_seq_number = self.initial_seq_number + 1
 
         synPack.checksum = self.__checksum(synPack)                   #compute/set checksum (must be last)
         pickle.dumps(synPack)                                         #serialize the packet for the UDP packet data field
 
-        self.sock.sendto(pickle.dumps(synPack), (IPAddr, port))
+        self.UDP_socket.sendto(pickle.dumps(synPack), (IPAddr, port))
 
-        #receive syn-ack
+        #2 receive syn-ack
         #       recDatagram = self.receive()
-        self.sock.recvfrom(self.recv_buffer)                          #buffer size
+        recvRDTPacket = pickle.loads(self.UDP_socket.recvfrom(self.recv_buffer))
 
-        #send ack
+        #might need try catch to check for packet corruption and such
+        #True if the packet received is a SYN-ACK with ack num == seq number +1
+        if recvRDTPacket.SYN and recvRDTPacket.ACK and recvRDTPacket.ack_num == self.curr_send_seq_number:
+            connACKPacket = self.__makePacket()
+            connACKPacket.ACK = True
+            connACKPacket.seq_num = self.curr_send_seq_number
+            self.curr_send_seq_number += 1
+            self.checksum = self.__checksum(connACKPacket)
+            #3 send ack
+            self.UDP_socket.sendto(pickle.dumps((connACKPacket), (IPAddr, port)))
+
+        else:
+            print("Wrong or Corrupted Packet received")
 
         self.CONNECTED = True
 
@@ -88,20 +107,35 @@ class Socket:
     then perform the connect process as detailed in the design report.
     """
     def listen(self):
-        pass
+        ##assign received packet to variable
+        rcvPack = self.receive()
+
+        ##if packet is SYN -> call connect
+
 
     """
     Changes the window size of the client or server.
+    @param size:    The new size of the window
     """
-    def window(self, size):
+    def set_window(self, size):
         self.window = size
 
+
+
     """
-    Disconnects the client from the server.
+    Disconnects the client from the server. The process is as following:
+    1. Client sends a TRM packet
+    2. Server acknowledges the packet
+    3. Server sends a TRM packet
+    4. Client sends an ACK packet
+    Connection terminated
     """
     def disconnect(self):
-        
+        self.__makeTRMPacket()
+
         self.CONNECTED = False
+
+
 
     """
     Sends data (in windows) to the other end of the socket. If there is no ACK within the timeout period, resends that
@@ -120,14 +154,14 @@ class Socket:
     @return    The data received from the other end of the connection
     """
     def receive(self):
+        disk = ""     #represents the "disk". Keeps concatenating bits read from packets once the buffer is flushed
+
         pass
 
     """
     Calculates the checksum of the entire packet by implementing the CRC32 algorithm
     """
     def __checksum(self, packet):
-        sum = None
-        sys.getsizeof(packet)  ##What is this for?
         sum = binascii.crc32(packet)
         return sum
 
@@ -172,3 +206,24 @@ class Socket:
     """
     def __packetize(self, msg_string):
         num_packets = len(msg_string)/self.MSS
+
+
+
+
+def main():
+    pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+if __name__ == '__main__':
+    main()
