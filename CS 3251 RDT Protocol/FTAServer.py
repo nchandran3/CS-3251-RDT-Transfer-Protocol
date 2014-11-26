@@ -1,5 +1,6 @@
 import sys
-import BasicSocket
+import socket
+from BasicSocket import RDTSocket
 
 DEBUG = False;
 
@@ -12,16 +13,17 @@ Functionality of File Transfer Application Server
 """
 class FTAServer():
 
-    def __init__(self, port, emuIPAddr, emuPort):
+
+    def __init__(self, serverPort, emuIPAddr, emuPort):
         self.IPAddr = "127.0.0.1"
-        self.port = port
+        self.port = serverPort
         self.emuIPAddr = emuIPAddr
         self.emuPort = emuPort
         self.clientIPAddr = None            #Will be defined by connect() method
         self.clientPort = None
         self.connected = False              #Indicates server/client connection
         self.commands = ["window", "terminate"]
-        self.basicSocket = BasicSocket(self.IPAddr, self.port)
+        self.rdtSocket = RDTSocket(self.IPAddr, self.port)
 
 
     def start(self):
@@ -30,8 +32,9 @@ class FTAServer():
         while not_terminate:
             self.showCommands()
             not_terminate = self.__open()
-            ##NOTE NOTE need to clarify 'receive' function name
-            self.basicSocket.receive()
+            if not_terminate:
+                print("Waiting for incoming packet")
+                rcvPacket = self.rdtSocket.receive()
 
 
 
@@ -49,10 +52,12 @@ class FTAServer():
 
         if cmd == "terminate":
             self.terminate()
+            print "terminate called"
             return False
 
         #The following commands take arguments
-        arg = input.split(" ")[1]
+        print adminInput
+        arg = adminInput.split(" ")[1]
 
         if cmd == "window":
             self.window(int(arg))
@@ -91,7 +96,7 @@ class FTAServer():
     """
     def terminate(self):
         d_print("Connection terminated.")
-        pass
+
 
 
 #############################################################################################################
@@ -162,10 +167,9 @@ def main(argv):
         usage()
         sys.exit(2)
 
-    server_port = argv[0]
+    server_port = int(argv[0])
     emu_addr = argv[1]
-    emu_port = argv[2]
-
+    emu_port = int(argv[2])
 
     global DEBUG        #starts out as False initially
     if len(argv) == 4:
