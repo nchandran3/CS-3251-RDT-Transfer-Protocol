@@ -24,6 +24,8 @@ class RDTSocket:
         self.BUFFER_SIZE = self.MSS + 28    #there are 28 bytes in UDP datagram header
         self.UDP_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)      #UDP socket for communicating with network emulator
         self.UDP_socket.bind((self.srcIP, self.srcPort))
+        self.curr_seq_number = 0
+        self.curr_ACK_number = 0
         
     
     """
@@ -38,23 +40,27 @@ class RDTSocket:
         
         #send SYN packet to server
         SYN_packet = self.__makeSYNPacket()
-        self.send_packet(SYN_packet)   #send the SYN packet 
+        self.__send_packet(SYN_packet)   #send the SYN packet 
         
         #wait for uncorrupted ACK
-        ACK_packet  = self.receive_packet()
+        ACK_packet  = self.__receive_packet()
         
-        packet = self.__makePacket(None)
-        self.send_packet(packet)
+        #send last packet to acknowledge ACK packet received.
+        client_ACK_packet = self.__makeACKPacket()
+        self.UDP_socket.sendto(pickle.dumps(client_ACK_packet), (self.destIP, self.destPort))
+        
+        #we are done, begin transmission
         
         
     def listen(self):
         while True:
             self.UDP_socket.settimeout(self.timeout)
             try:
-                packet = self.receive_packet()
+                packet = self.__receive_packet()
                 if packet.SYN:
                     ACK_packet = self.__makeACKPacket()
-                    self.send_packet(ACK_packet)
+                    ACK_packet.ack_num = packet.seq_num
+                    self.__send_packet(ACK_packet)
             except socket.timeout:
                 continue
         
@@ -71,7 +77,7 @@ class RDTSocket:
             self.UDP_socket.sendtto(packet_string, (self.destIP, self.destPort))
             
             try:
-                ACK_packet = self.receive_packet()
+                ACK_packet = self.__receive_packet()
             except socket.timeout:
                 continue
     
@@ -85,7 +91,12 @@ class RDTSocket:
         packet = pickle.loads(packet_string)
         
         if self.__uncorrupt(packet):
-            return packet
+            if not self.__duplicate(packet):
+                return packet
+            else:
+                print "Duplicate packet detected"
+        else:
+            print "Corrupted packet"
         
         return None
     
@@ -102,6 +113,7 @@ class RDTSocket:
         packet.srcPort = self.srcPort
         packet.destIP = self.destIP
         packet.destPort = self.destPort
+        packet.seq_num = self.send_seq_number
         packet.SYN = False
         packet.ACK = False
         packet.TRM = False
@@ -124,7 +136,7 @@ class RDTSocket:
         packet.ACK = True
         return packet
     
-    def __checksum(self,packet):
+    def __checksum(self, packet):
         return zlib.crc32(pickle.dumps(packet))
 
     def __uncorrupt(self, packet):
@@ -133,5 +145,7 @@ class RDTSocket:
         
         return False
 
+    def __duplicate(self, packet):
+        if packet.seq_num != self.curr_seq_number
 if __name__ == "__main__":
     pass
