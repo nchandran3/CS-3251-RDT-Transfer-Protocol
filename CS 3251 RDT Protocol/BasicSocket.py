@@ -24,8 +24,8 @@ class RDTSocket:
         self.BUFFER_SIZE = self.MSS + 28    #there are 28 bytes in UDP datagram header
         self.UDP_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)      #UDP socket for communicating with network emulator
         self.UDP_socket.bind((self.srcIP, self.srcPort))
-        self.curr_seq_number = 0
-        self.curr_ACK_number = 0
+        self.send_seq_number = 0
+        self.expected_seq_number = 0
         
     
     """
@@ -41,32 +41,53 @@ class RDTSocket:
         #send SYN packet to server
         SYN_packet = self.__makeSYNPacket()
         self.__send_packet(SYN_packet)   #send the SYN packet 
-        
+        print "Sent SYN Packet"
         #wait for uncorrupted ACK
         ACK_packet  = self.__receive_packet()
-        
+        print "Received SYN-ACK"
         #send last packet to acknowledge ACK packet received.
         client_ACK_packet = self.__makeACKPacket()
         self.UDP_socket.sendto(pickle.dumps(client_ACK_packet), (self.destIP, self.destPort))
-        
+        print "Sent SYN-ACK response. Connection established"
         #we are done, begin transmission
+    
+    """
+    Disconnects the client from the server
+    """
+    def disconnect(self):
         
-        
+    """
+    Server call to block until a SYN packet is received, thus indicating intention to establish a connection.
+    When this method returns, it means the server has successfully connected with a client
+    """
     def listen(self):
+        if self.CONNECTED:      #can only establish connection once
+            return
+        
         while True:
             self.UDP_socket.settimeout(self.timeout)
             try:
                 packet = self.__receive_packet()
                 if packet.SYN:
+                    print "Received SYN packet"
                     ACK_packet = self.__makeACKPacket()
                     ACK_packet.ack_num = packet.seq_num
                     self.__send_packet(ACK_packet)
+                    print "Sent SYN-ACK packet. Connection established"
             except socket.timeout:
                 continue
         
         self.CONNECTED = True
 
+
+
+
     """
+    Send method. Takes in a file and sends it as a byte stream. The amount of packets used will be 
+                        # bytes in file / MSS 
+    """
+    """
+    Private helper method
     Continues sending the packet in intervals of {self.timeout} seconds until a valid ACK is received
     """
     def __send_packet(self, packet):
@@ -82,8 +103,18 @@ class RDTSocket:
                 continue
     
     """
+    Sends an ACK packet without waiting for a timeout (implemented by receiving side only)
+    """
+    def __send_ACK_packet(self):
+        ACK = self.__makeACKPacket()
+        packet_string = pickle.dumps(ACK)
+        self.UDP_socket.sendto(packet_string, (self.destIP, self.destPort))
+        
+    """
     Receive packets. Returns the packet if it is ok, or None if there was an error with the packet.
     Throws a timeout exception if nothing is received within the timeout period
+    @return: The packet object if it is not corrupted or a duplicate; None otherwise
+    @raise socket.timeout: If the socket times out while receiving a packet
     """
     def __receive_packet(self):
         self.UDP_socket.settimeout(self.timeout)
@@ -118,7 +149,8 @@ class RDTSocket:
         packet.ACK = False
         packet.TRM = False
         packet.checksum = self.__checksum(packet) #must be calculated last because it considers all header fields as well
-
+        
+        self.send_seq_number = (self.send_seq_number + 1) % 2
         return packet
         
     def __makeSYNPacket(self):
@@ -137,15 +169,23 @@ class RDTSocket:
         return packet
     
     def __checksum(self, packet):
-        return zlib.crc32(pickle.dumps(packet))
+        values = [packet.data, packet.srcIP, packet.srcPort, packet.destIP, packet.destPort, packet.seq_num, packet.ack_num,
+                  packet.SYN, packet.ACK, packet.TRM]
+        checksum = None
+        zlib.crc32(pickle.dumps(packet))
 
     def __uncorrupt(self, packet):
         if self.__checksum(packet) == packet.checksum:
             return True
         
+        print "Packet corrupted"
         return False
 
     def __duplicate(self, packet):
-        if packet.seq_num != self.curr_seq_number
+        if packet.seq_num != self.curr_seq_number:
+            print "Duplicate packet detected"
+            return True
+        return False
+    
 if __name__ == "__main__":
     pass
