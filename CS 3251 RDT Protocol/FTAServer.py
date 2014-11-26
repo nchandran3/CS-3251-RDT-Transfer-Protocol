@@ -1,9 +1,5 @@
-'''
-Created on Oct 31, 2014
-
-@author: Michael Carlson
-'''
 import sys
+import BasicSocket
 
 DEBUG = False;
 
@@ -23,8 +19,9 @@ class FTAServer():
         self.emuPort = emuPort
         self.clientIPAddr = None            #Will be defined by connect() method
         self.clientPort = None
-#         self.connected = False              #Indicates server/client connection
+        self.connected = False              #Indicates server/client connection
         self.commands = ["window", "terminate"]
+        self.basicSocket = BasicSocket(self.IPAddr, self.port)
 
 
     def start(self):
@@ -33,6 +30,8 @@ class FTAServer():
         while not_terminate:
             self.showCommands()
             not_terminate = self.__open()
+            ##NOTE NOTE need to clarify 'receive' function name
+            self.basicSocket.receive()
 
 
 
@@ -41,8 +40,8 @@ class FTAServer():
     @return     False if disconnect command was given; True otherwise
     """
     def __open(self):
-        input = raw_input("Enter command to perform: ")
-        cmd = input.split(" ")[0].lower()
+        adminInput = raw_input("Enter command to perform: ")
+        cmd = adminInput.split(" ")[0].lower()
 
         if not cmd or cmd not in self.commands:
             print "Invalid command"
