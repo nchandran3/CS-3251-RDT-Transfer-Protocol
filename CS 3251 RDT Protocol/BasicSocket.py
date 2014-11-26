@@ -122,16 +122,13 @@ class RDTSocket:
     """
     def send(self, filename):
         try:
-           file = open(filename)
+            with open(filename) as file:
+                bytes_to_send = file.read()
         except IOError:
             print "Requested file doesn't exist"
             return
 
-        self.connect()
-
         #Loop through creating a packet with MSS bytes of data and sending it
-
-        bytes_to_send = file.read()
         byte_pointer = 0      #points to the first byte in the next packet to be sent
 
         while byte_pointer + self.MSS < len(bytes_to_send):
