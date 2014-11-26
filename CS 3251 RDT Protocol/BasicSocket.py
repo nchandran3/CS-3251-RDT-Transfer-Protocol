@@ -3,7 +3,7 @@ try:
 except:
     import pickle
 
-import RDTPacket
+from RDTPacket import RDTPacket
 import socket
 import zlib
 
@@ -19,7 +19,7 @@ class RDTSocket:
         self.destIP = None          #determined upon successful connection
         self.CONNECTED = False      #only set to true upon successful connection with server/client
 
-        self.timeout = 1            #default, will change according to max timeout received
+        self.timeout = 30            #default, will change according to max timeout received
         self.MSS = 1024             #max number of bytes an RDT packet payload can have
         self.BUFFER_SIZE = self.MSS + 28    #there are 28 bytes in UDP datagram header
         self.UDP_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)      #UDP socket for communicating with network emulator
@@ -165,6 +165,8 @@ class RDTSocket:
             except socket.timeout:
                 continue
 
+            print(packet)
+
             if packet.data == None:     #we have received the last packet
                 break
 
@@ -185,7 +187,7 @@ class RDTSocket:
         packet_string = pickle.dumps(packet)
 
         while ACK_packet == None:
-            self.UDP_socket.sendtto(packet_string, (self.destIP, self.destPort))
+            self.UDP_socket.sendto(packet_string, (self.destIP, self.destPort))
 
             try:
                 packet = self.__receive_packet()
@@ -217,20 +219,21 @@ class RDTSocket:
     """
     def __receive_packet(self):
         self.UDP_socket.settimeout(self.timeout)
-        packet_string = self.UDP_socket.recv(self.BUFFER_SIZE)
-        packet = pickle.loads(packet_string)
-
-        if self.__uncorrupt(packet):
-            if not self.__duplicate(packet):
-                return packet
+        try:
+            packet_string = self.UDP_socket.recv(self.BUFFER_SIZE)
+            packet = pickle.loads(packet_string)
+#           print('received packet contents: ' + packet)
+            if self.__uncorrupt(packet):
+                if not self.__duplicate(packet):
+                    return packet
+                else:
+                    print "Duplicate packet detected"
             else:
-                print "Duplicate packet detected"
-        else:
-            print "Corrupted packet"
+                print "Corrupted packet"
+        except socket.timeout or socket.error, msg:
+            print'Timeout Occured'
 
         return None
-
-
 
     """
     Creates a RDT Packet with the given data
@@ -282,7 +285,7 @@ class RDTSocket:
                   packet.SYN, packet.ACK, packet.TRM]
         checksum = ""
         for val in values:
-            checksum += zlib.crc32(pickle.dumps(val))
+            checksum += str(zlib.crc32(pickle.dumps(val)))
 
         return checksum
 

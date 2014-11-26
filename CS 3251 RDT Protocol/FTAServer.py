@@ -1,5 +1,6 @@
 import sys
 import socket
+import errno
 from BasicSocket import RDTSocket
 
 DEBUG = False;
@@ -34,8 +35,10 @@ class FTAServer():
             not_terminate = self.__open()
             if not_terminate:
                 print("Waiting for incoming packet")
-                rcvPacket = self.rdtSocket.receive()
-
+                try:
+                    rcvPacket = self.rdtSocket.receive()
+                except socket.error, msg:
+                    print 'Failed to create socket. Error Code : ' + str(msg[0]) + ' Message ' + msg[1]
 
 
     """
@@ -56,7 +59,7 @@ class FTAServer():
             return False
 
         #The following commands take arguments
-        print adminInput
+        d_print("Admin input: " + adminInput)
         arg = adminInput.split(" ")[1]
 
         if cmd == "window":

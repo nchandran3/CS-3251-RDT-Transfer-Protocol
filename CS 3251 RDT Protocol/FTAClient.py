@@ -24,7 +24,7 @@ class FTAClient():
 
         self.commands = ["connect", "get", "post", "window", "disconnect"]
 
-        self.rdtSocket = RDTSocket(self.IPAddr, self.port)
+        self.clientRDTSocket = RDTSocket(self.IPAddr, self.port)
 
 
     """
@@ -103,7 +103,7 @@ class FTAClient():
         self.serverIPAddr, self.serverPort = serverIP, port
         self.connected = True
         d_print("Called connect with IP: " + serverIP + " and port: " + str(port))
-        pass
+        self.clientRDTSocket.connect(self.serverIPAddr, self.serverPort)
 
 
 
