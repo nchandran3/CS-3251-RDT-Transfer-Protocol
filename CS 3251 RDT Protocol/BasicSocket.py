@@ -69,8 +69,7 @@ class RDTSocket:
         self.__send_packet(TRM_packet)
         print "Sent TRM packet"
         
-        #wait for uncorrupted ACK
-        ACK_packet - self.__receive_packet()
+       
         
         
         
@@ -116,6 +115,7 @@ class RDTSocket:
     """
     Send method. Takes in a filename and sends it as a byte stream. The amount of packets used will be 
                         # bytes in file / MSS 
+    @param filename:    The filename that will be sent
     """
     def send(self, filename):
         try:
@@ -124,10 +124,30 @@ class RDTSocket:
             print "Requested file doesn't exist"
             return
         
-        #create the packets as we receive ACKs
         self.connect()
+        
+        #Loop through creating a packet with MSS bytes of data and sending it
+        
+        bytes_to_send = file.read()
+        byte_pointer = 0      #points to the first byte in the next packet to be sent
+        
+        while byte_pointer + self.MSS < len(bytes_to_send):
+            data = bytes_to_send[byte_pointer: byte_pointer+self.MSS]
+            packet = self.__makePacket(data)
+            self.__send_packet(packet)      #packet is ensured to be successfully sent and ACK'd
+            byte_pointer += self.MSS
+            
+        #send last packet with data
+        data = bytes_to_send[byte_pointer:]
+        packet = self.__makePacket(data)
+        self.__send_packet(packet)
+        
+        
+        #disconnect
+        self.disconnect()
            
-           
+    
+    
            
            
            
@@ -259,5 +279,7 @@ class RDTSocket:
             return True
         return False
     
+    
+  
 if __name__ == "__main__":
     pass
