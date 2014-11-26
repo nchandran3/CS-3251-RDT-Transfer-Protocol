@@ -114,7 +114,8 @@ class RDTSocket:
 
     """
     Send method. Takes in a filename and sends it as a byte stream. The amount of packets used will be 
-                        # bytes in file / MSS 
+                        (# bytes in file / MSS)  + 1
+    The last packet sent will contain no data and indicates the end of the sending stream
     @param filename:    The filename that will be sent
     """
     def send(self, filename):
@@ -142,14 +143,31 @@ class RDTSocket:
         packet = self.__makePacket(data)
         self.__send_packet(packet)
         
+        #send empty packet to indicate end of data (we have successfully transmitted the entire file)
+        packet = self.__makePacket(None)
+        self.__send_packet(packet)
+           
+    
+    
+           
+    """
+    Receives packets that are sent by the sender
+    @return: The entire data byte stream that was received
+    """
+    def receive(self):
+        data_bytes = ""
         
-        #disconnect
-        self.disconnect()
-           
-    
-    
-           
-           
+        while True:
+            try:
+                packet = self.__receive_packet()
+                if packet.data == None:     #we have received the last packet
+                    break
+                
+            except socket.timeout:
+                continue
+            
+            data_bytes += packet.data
+            self.__send_ACK_packet()
            
            
            
@@ -187,7 +205,8 @@ class RDTSocket:
         
         
     """
-    Receive packets. Returns the packet if it is ok, or None if there was an error with the packet.
+    Receive packets. Ensures correct reception of a packet
+    Returns the packet if it is ok, or None if there was an error with the packet.
     Throws a timeout exception if nothing is received within the timeout period
     @return: The packet object if it is not corrupted or a duplicate; None otherwise
     @raise socket.timeout: If the socket times out while receiving a packet
@@ -277,6 +296,7 @@ class RDTSocket:
         if packet.seq_num != self.curr_seq_number:
             print "Duplicate packet detected"
             return True
+        
         return False
     
     
