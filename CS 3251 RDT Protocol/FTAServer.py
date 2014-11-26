@@ -26,6 +26,8 @@ class FTAServer():
         self.commands = ["window", "terminate"]
         self.rdtSocket = RDTSocket(self.IPAddr, self.port)
 
+        ##testing code
+#         self.rdtSocket.destIP, self.rdtSocket.destPort = '127.0.0.1', 49154
 
     def start(self):
         not_terminate = True

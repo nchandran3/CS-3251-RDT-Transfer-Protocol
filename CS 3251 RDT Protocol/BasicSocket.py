@@ -19,7 +19,7 @@ class RDTSocket:
         self.destIP = None          #determined upon successful connection
         self.CONNECTED = False      #only set to true upon successful connection with server/client
 
-        self.timeout = 30            #default, will change according to max timeout received
+        self.timeout = 10            #default, will change according to max timeout received
         self.MSS = 1024             #max number of bytes an RDT packet payload can have
         self.BUFFER_SIZE = self.MSS + 28    #there are 28 bytes in UDP datagram header
         self.UDP_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)      #UDP socket for communicating with network emulator
@@ -165,8 +165,10 @@ class RDTSocket:
             except socket.timeout:
                 continue
 
-            print(packet)
-
+#             print(packet)
+            packet = RDTPacket()                            ##FOR DEBUGGING
+            packet.data = '654654321s3dafsdf5a165a1sfa'     ##DEBUGGING
+#             print packet
             if packet.data == None:     #we have received the last packet
                 break
 
@@ -206,6 +208,7 @@ class RDTSocket:
     def __send_ACK_packet(self):
         ACK = self.__makeACKPacket()
         packet_string = pickle.dumps(ACK)
+        print type(self.destIP)
         self.UDP_socket.sendto(packet_string, (self.destIP, self.destPort))
 
 
