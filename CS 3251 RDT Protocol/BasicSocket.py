@@ -38,47 +38,56 @@ class RDTSocket:
         
         #send SYN packet to server
         SYN_packet = self.__makeSYNPacket()
-        packet_string = pickle.dumps(SYN_packet)
-        self.UDP_socket.sendto(packet_string, (IPAddr, port))   #send the SYN packet 
+        self.send_packet(SYN_packet)   #send the SYN packet 
         
         #wait for uncorrupted ACK
-        ACK_packet_serialized = self.UDP_socket.recv(self.BUFFER_SIZE)
-        ACK_packet = pickle.loads(RDT_packet_serialized)
+        ACK_packet  = self.receive_packet()
+        
+        packet = self.__makePacket(None)
+        self.send_packet(packet)
         
         
     def listen(self):
         while True:
             self.UDP_socket.settimeout(self.timeout)
             try:
-                SYN_packet_serialized = self.UDP_socket.recv(self.MSS+28)       #UDP + IP header = 28 bytes
-                SYN_packet = pickle.loads(SYN_packet_serialized)
-                break
+                packet = self.receive_packet()
+                if packet.SYN:
+                    ACK_packet = self.__makeACKPacket()
+                    self.send_packet(ACK_packet)
             except socket.timeout:
                 continue
         
-        
-        if self.__uncorrupt(SYN_packet):
-            pass
-        
         self.CONNECTED = True
 
-    def send(self, packet):
+    """
+    Continues sending the packet in intervals of {self.timeout} seconds until a valid ACK is received
+    """
+    def __send_packet(self, packet):
         ACK_packet = None
         packet_string = pickle.dumps(packet)
         
         while ACK_packet == None:
-            self.UDP_socket.sendtto(packet_string, (self.IPAddr, self.port))
+            self.UDP_socket.sendtto(packet_string, (self.destIP, self.destPort))
             
-            self.UDP_socket.settimeout(self.timeout)
             try:
-                ACK_packet = self.UDP_socket.recv(self.BUFFER_SIZE)
+                ACK_packet = self.receive_packet()
             except socket.timeout:
                 continue
+    
     """
-    Receive packets
+    Receive packets. Returns the packet if it is ok, or None if there was an error with the packet.
+    Throws a timeout exception if nothing is received within the timeout period
     """
-    def receive(self):
-        pass
+    def __receive_packet(self):
+        self.UDP_socket.settimeout(self.timeout)
+        packet_string = self.UDP_socket.recv(self.BUFFER_SIZE)
+        packet = pickle.loads(packet_string)
+        
+        if self.__uncorrupt(packet):
+            return packet
+        
+        return None
     
     """
     Creates a RDT Packet with the given data
