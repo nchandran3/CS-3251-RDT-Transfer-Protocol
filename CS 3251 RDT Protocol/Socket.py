@@ -7,7 +7,7 @@ import socket
 import sys
 import random
 import RDTPacket
-import binascii
+import zlib
 
 """
 This class implements the RDT protocol and allows the File Transfer Application to perform the following
@@ -18,6 +18,9 @@ receive(buffer size)
 
 Internally, it handles all connection setup and teardown as per the specifications on the Implementation Design Report
 """
+
+
+
 
 class Socket:
 
@@ -50,19 +53,46 @@ class Socket:
     """
     The server socket will connect to a given IPAddr and port number if a SYN packet is received
     by implementing the following steps:
-    1. Extract the sequence number, IP Address and port number from the SYN packet (also validate checksum)
-    2.
+    1.  The checksum from the packet is validated. If SYN packet, extract the sequence number(called A), IP Address, port number and checksum.
+    2.  Randomly generate an initial sequence number for the server.
+    3.  Send SYN-ACK packet back to client with the ack number equal to one plus the sequence number(A) received.
+        Also send the server's initial sequence number. Increment sequence number.
+
+            Server is connected to Client...
     """
+    def serverConnect(self):
+        while self.CONNECTED == False:
+            #1
+            recvPacket = pickle.loads(self.UDP_socket.recvfrom(self.recv_buffer))
+
+            if recvPacket.SYN == True and self.__uncorrupt(recvPacket):
+                self.destIP = recvPacket.destIP
+                self.destPort = recvPacket.destPort
+
+                #2
+                #Initial sequence number is a random long integer
+                self.initial_seq_number = (long) (random.uniform(1, (2**(32)- 1)))
+
+                #3
+                saPacket = self.__makeSYNACKPacket()
+                saPacket.checksum = self.__checksum(saPacket)
+
+                self.UDP_socket.sendto(pickle.dumps(saPacket), (self.srcIP, self.srcPort))
+
+                self.CONNECTED = True
+
+
 
     """
     The client socket will connect to the given IPAddr and port by implementing the following steps:
-    1. Send SYN packet - this includes the client's initial sequence number and clients's
-       receiving window size.
+    1. Send SYN packet - this includes the client's initial sequence number, clients's
+       receiving window size and checksum.
     2. Receive SYN packet Acknowledgement from the server - this includes the server's initial
-       sequence number and the server's maximum receiving window size. Must also validate checksum
-    3. The client will send an Acknowledgement to the server
+       sequence number and the server's maximum receiving window size. Must also validate checksum.
+    3. The client will send an Acknowledgement to the server with correct sequence and ack numbers.
+        Again checksum must be computed and sent.
 
-           Client and server are now connected...
+           Client is connected to Server...
 
     @param IPAddr:    The destination IP address that the socket should connect to
     @param port:     The destination port that the socket should connect to
@@ -70,37 +100,40 @@ class Socket:
     def clientConnect(self, IPAddr, port):
         self.destIP = IPAddr
         self.destPort = port
-        recvRDTPacket = self.__makePacket()
+
         #1 send syn packet
-        synPack = self.__makeSYNPacket()                                            # mark as SYN RDTPacket
-        synPack.seq_num = (long) (random.uniform(1, (2**(32)- 1)))    #Initial sequence number is random long int
-        self.initial_seq_number = synPack.seq_num
+        synPack = self.__makeSYNPacket()
+        #Initial sequence number is a random long integer
+        self.initial_seq_number = (long) (random.uniform(1, (2**(32)- 1)))
+        synPack.seq_num = self.initial_seq_number
         self.curr_send_seq_number = self.initial_seq_number + 1
 
-        synPack.checksum = self.__checksum(synPack)                   #compute/set checksum (must be last)
-        pickle.dumps(synPack)                                         #serialize the packet for the UDP packet data field
+        synPack.checksum = self.__checksum(synPack)
 
+        #send and serialize the packet for the UDP packet data field
         self.UDP_socket.sendto(pickle.dumps(synPack), (IPAddr, port))
 
         #2 receive syn-ack
-        #       recDatagram = self.receive()
         recvRDTPacket = pickle.loads(self.UDP_socket.recvfrom(self.recv_buffer))
 
-        #might need try catch to check for packet corruption and such
-        #True if the packet received is a SYN-ACK with ack num == seq number +1
-        if recvRDTPacket.SYN and recvRDTPacket.ACK and recvRDTPacket.ack_num == self.curr_send_seq_number:
-            connACKPacket = self.__makePacket()
-            connACKPacket.ACK = True
-            connACKPacket.seq_num = self.curr_send_seq_number
-            self.curr_send_seq_number += 1
-            self.checksum = self.__checksum(connACKPacket)
-            #3 send ack
-            self.UDP_socket.sendto(pickle.dumps((connACKPacket), (IPAddr, port)))
+        while self.CONNECTED == False:
+            #True if the packet received is a SYN-ACK with ack num == seq number +1
+            if (recvRDTPacket.SYN and recvRDTPacket.ACK and recvRDTPacket.ack_num == self.curr_send_seq_number
+                and self.__isValidChecksum(recvRDTPacket)):
+                connACKPacket = self.__makePacket()
+                connACKPacket.ACK = True
+                connACKPacket.seq_num = self.curr_send_seq_number
+                self.curr_send_seq_number += 1
+                self.checksum = self.__checksum(connACKPacket)
 
-        else:
-            print("Wrong or Corrupted Packet received")
+                #3 send ack
+                self.UDP_socket.sendto(pickle.dumps((connACKPacket), (IPAddr, port)))
 
-        self.CONNECTED = True
+                self.CONNECTED = True
+
+            else:
+                print("Wrong or Corrupted Packet received...")
+                self.CONNECTED = False
 
     """
     This method is only to be called on the server file transfer application. Blocks until it receives a SYN packet. It will
@@ -162,8 +195,13 @@ class Socket:
     Calculates the checksum of the entire packet by implementing the CRC32 algorithm
     """
     def __checksum(self, packet):
-        sum = binascii.crc32(packet)
-        return sum
+        values = [packet.data, packet.srcIP, packet.srcPort, packet.destIP, packet.destPort, packet.seq_num, packet.ack_num,
+                  packet.SYN, packet.ACK, packet.TRM]
+        checksum = ""
+        for val in values:
+            checksum += zlib.crc32(pickle.dumps(val))
+
+        return checksum
 
     """
     Creates a RDT Packet with the given data
@@ -193,10 +231,20 @@ class Socket:
         packet.SYN = True
         return packet
 
+    def __makeSYNACKPacket(self):
+        packet = self.__makePacket(None)
+        packet.SYN = True
+        packet.ACK = True
+        return packet
+
     def __makeTRMPacket(self):
         packet = self.__makePacket(None)
         packet.TRM = True
         return packet
+
+    def uncorrupt(self, recvRDTPacket):
+        recChecksum = self.__checksum(recvRDTPacket)
+        return (recChecksum == recvRDTPacket.checksum)
 
     """
     Breaks up a message into message size/MSS packets
