@@ -160,14 +160,16 @@ class RDTSocket:
         while True:
             try:
                 packet = self.__receive_packet()
-                if packet.data == None:     #we have received the last packet
-                    break
-                
             except socket.timeout:
                 continue
             
-            data_bytes += packet.data
+            if packet.data == None:     #we have received the last packet
+                break
+            
+            data_bytes += packet.data   #add data to "disk"
             self.__send_ACK_packet()
+            
+        return  data_bytes
            
            
            
