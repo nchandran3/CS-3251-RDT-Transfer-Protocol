@@ -62,7 +62,9 @@ class FTAClient():
         if cmd == "connect":
             addr, port = arg.split(":")
             self.connect(addr, int(port))
-
+            
+        if cmd == "connect-get":
+            pass
         if cmd == "get":
             self.get(arg)
 
