@@ -182,6 +182,7 @@ class RDTSocket:
     Continues sending the packet in intervals of {self.timeout} seconds until a valid ACK is received
     """
     def __send_packet(self, packet):
+
         ACK_packet = None
         packet_string = pickle.dumps(packet)
 
@@ -220,8 +221,9 @@ class RDTSocket:
     def __receive_packet(self):
         self.UDP_socket.settimeout(self.timeout)
         try:
-            packet_string = self.UDP_socket.recvfrom(self.BUFFER_SIZE)
+            packet_string, addr = self.UDP_socket.recvfrom(self.BUFFER_SIZE)
             packet = pickle.loads(packet_string)
+
 #           print('received packet contents: ' + packet)
             if self.__uncorrupt(packet):
                 if not self.__duplicate(packet):
@@ -281,6 +283,7 @@ class RDTSocket:
 
 
     def __checksum(self, packet):
+
         values = [packet.data, packet.srcIP, packet.srcPort, packet.destIP, packet.destPort, packet.seq_num, packet.ack_num,
                   packet.SYN, packet.ACK, packet.TRM]
         checksum = ""
