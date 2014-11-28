@@ -117,9 +117,10 @@ class FTAClient():
     port number (as specified by the assignment)
     """
     def connect(self, serverIP, port):
+        d_print("Called connect with IP: " + serverIP + " and port: " + str(port))
+
         self.serverIPAddr, self.serverPort = serverIP, port
         self.connected = True
-        d_print("Called connect with IP: " + serverIP + " and port: " + str(port))
         self.clientRDTSocket.connect(self.serverIPAddr, self.serverPort)
 
 
@@ -137,6 +138,8 @@ class FTAClient():
 
 
     def connect_get(self, file):
+        d_print("Called connect-get with file name: " + file)
+        
         self.connect(self.serverIPAddr, self.serverPort)
         self.get(file)
         
@@ -148,6 +151,7 @@ class FTAClient():
     """
     def post(self, file):
         d_print("Called post with file name: " + file)
+        
         pass
 
 
@@ -159,6 +163,7 @@ class FTAClient():
     """
     def window(self, size):
         d_print("Called window with size: " + str(size))
+        
         pass
 
 
@@ -168,6 +173,7 @@ class FTAClient():
     """
     def terminate(self):
         d_print("Called terminate")
+        
         pass
 
 
