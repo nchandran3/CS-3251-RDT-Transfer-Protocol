@@ -22,7 +22,7 @@ class FTAClient():
         self.serverPort = port + 1
         self.connected = False              #Indicates whether the client is connected to the server at this time
 
-        self.commands = ["connect", "get", "post", "window", "disconnect"]
+        self.commands = ["connect", "get", "post", "window", "disconnect", "connect-get"]       #must contain all available commands
 
         self.clientRDTSocket = RDTSocket(self.IPAddr, self.port)
 
@@ -89,6 +89,9 @@ class FTAClient():
         connect-get f    Connects to server and downloads file {f} to client
 
         """
+        
+        
+        
     """
     Shows available client commands once the client has been started. This implements extra credit 
     functions.
@@ -132,6 +135,11 @@ class FTAClient():
 
 
 
+    def connect_get(self, file):
+        self.connect(self.serverIPAddr, self.serverPort)
+        self.get(file)
+        
+        
     """
     Uploads a file to the server
     @param file - The full file name to upload to the server
