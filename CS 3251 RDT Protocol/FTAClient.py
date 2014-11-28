@@ -18,8 +18,8 @@ class FTAClient():
         self.port = port
         self.emuIPAddr = emuIPAddr
         self.emuPort = emuPort
-        self.serverIPAddr = None            #Will be defined by connect() method
-        self.serverPort = None
+        self.serverIPAddr = "127.0.0.1"            #Will be defined by connect() method
+        self.serverPort = port + 1
         self.connected = False              #Indicates whether the client is connected to the server at this time
 
         self.commands = ["connect", "get", "post", "window", "disconnect"]
@@ -80,9 +80,20 @@ class FTAClient():
 
 
     """
-    Shows available client commands once the client has been started
+    Shows available client commands once the client has been started. Does not implement extra credit functions
     """
     def showCommands(self):
+        print """
+        Commands:
+        -----------------------------
+        connect-get f    Connects to server and downloads file {f} to client
+
+        """
+    """
+    Shows available client commands once the client has been started. This implements extra credit 
+    functions.
+    """
+    def showCommandsx(self):
         print """
         Commands:
         -----------------------------
