@@ -80,7 +80,7 @@ class RDTSocket:
         
 
 
-
+        self.UDP_socket.close()
         self.CONNECTED = False
 
 
