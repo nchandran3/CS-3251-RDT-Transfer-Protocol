@@ -220,7 +220,7 @@ class RDTSocket:
     def __receive_packet(self):
         self.UDP_socket.settimeout(self.timeout)
         try:
-            packet_string = self.UDP_socket.recv(self.BUFFER_SIZE)
+            packet_string = self.UDP_socket.recvfrom(self.BUFFER_SIZE)
             packet = pickle.loads(packet_string)
 #           print('received packet contents: ' + packet)
             if self.__uncorrupt(packet):
