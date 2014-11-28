@@ -15,8 +15,8 @@ class RDTSocket:
     def __init__(self, IPAddr, port):
         self.srcPort = port
         self.srcIP = IPAddr
-        self.destPort = None        #determined upon successful connection
-        self.destIP = None          #determined upon successful connection
+        self.destPort = None        #determined upon successful connection (either in connect or listen)
+        self.destIP = None          #determined upon successful connection (either in connect or listen)
         self.CONNECTED = False      #only set to true upon successful connection with server/client
 
         self.timeout = 10            #default, will change according to max timeout received
@@ -96,6 +96,9 @@ class RDTSocket:
                 packet = self.__receive_packet()
                 if packet.SYN:
                     print "Received SYN packet"
+                    self.destIP = packet.destIP
+                    self.destPort = packet.destPort     #after server receives a packet, it now knows where to send all other packets
+                    
                     ACK_packet = self.__makeACKPacket()
                     ACK_packet.ack_num = packet.seq_num
                     self.__send_packet(ACK_packet)
@@ -233,7 +236,7 @@ class RDTSocket:
             else:
                 print "Corrupted packet"
         except socket.timeout or socket.error, msg:
-            print'Timeout Occured'
+            print'Timeout Occurred'
 
         return None
 
