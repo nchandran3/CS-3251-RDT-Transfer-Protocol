@@ -57,7 +57,7 @@ class FTAServer():
 
         if cmd == "terminate":
             self.terminate()
-            print "terminate called"
+            print "Terminate called. Shutting down server."
             return False
 
         #The following commands take arguments
@@ -73,9 +73,23 @@ class FTAServer():
 
 
     """
-    Shows available client commands once the client has been started
+    Shows available client commands once the client has been started. Does not implement extra credit commands
     """
     def showCommands(self):
+        print """
+        Commands:
+        -----------------------------
+        terminate      - Shuts down FTA-Server smoothly.
+
+        """
+        
+        
+        
+        
+    """
+    Shows available client commands once the client has been started. Implements extra credit commands
+    """
+    def showCommandsx(self):
         print """
         Commands:
         -----------------------------
