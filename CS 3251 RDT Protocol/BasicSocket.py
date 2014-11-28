@@ -18,6 +18,8 @@ class RDTSocket:
         self.destPort = None        #determined upon successful connection (either in connect or listen)
         self.destIP = None          #determined upon successful connection (either in connect or listen)
         self.CONNECTED = False      #only set to true upon successful connection with server/client
+        self.TERMINATED = False     #this indicates whether the CURRENT SOCKET is terminated. The other socket must also 
+                                    #be terminated in order to have a successful termination
 
         self.timeout = 10            #default, will change according to max timeout received
         self.MSS = 1024             #max number of bytes an RDT packet payload can have
@@ -70,15 +72,16 @@ class RDTSocket:
         if not self.CONNECTED:      #we are already disconnected so just return
             return  
         
-        TRM_packet = self.__makeTRMPacket()
-        self.__send_packet(TRM_packet)
-        print "Sent TRM packet"
-
+        if not self.TERMINATED:     #if we haven't already sent our intention to quit
+            TRM_packet = self.__makeTRMPacket()
+            self.__send_packet(TRM_packet)
+            print "Sent TRM packet"
+            
         
 
 
 
-
+        self.CONNECTED = False
 
 
 
@@ -86,12 +89,14 @@ class RDTSocket:
 
 
     """
+    SERVER METHOD ONLY!!!!!!!!
     Server call to block until a SYN packet is received, thus indicating intention to establish a connection.
     When this method returns, it means the server has successfully connected with a client
     """
     def listen(self):
         if self.CONNECTED:      #can only establish connection once
-            return
+            print "Already connected to a client"
+            return -1
 
         while True:
             self.UDP_socket.settimeout(self.timeout)
@@ -110,6 +115,7 @@ class RDTSocket:
                 continue
 
         self.CONNECTED = True
+        return True
 
 
 
@@ -300,7 +306,9 @@ class RDTSocket:
         return False
 
 
-
+    """
+    Checks if a duplicate packet was received.
+    """
     def __duplicate(self, packet):
         if packet.seq_num != self.curr_seq_number:
             print "Duplicate packet detected"
