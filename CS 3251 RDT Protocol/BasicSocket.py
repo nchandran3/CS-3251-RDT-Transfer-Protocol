@@ -67,11 +67,14 @@ class RDTSocket:
     Disconnects the client from the server
     """
     def disconnect(self):
+        if not self.CONNECTED:      #we are already disconnected so just return
+            return  
+        
         TRM_packet = self.__makeTRMPacket()
         self.__send_packet(TRM_packet)
         print "Sent TRM packet"
 
-
+        
 
 
 
@@ -193,9 +196,9 @@ class RDTSocket:
             self.UDP_socket.sendto(packet_string, (self.destIP, self.destPort))
 
             try:
-                packet = self.__receive_packet()
+                recv_packet = self.__receive_packet()
 
-                if packet.ACK and packet.ack_num == self.send_seq_number:
+                if recv_packet.ACK and recv_packet.ack_num == packet.ack_num:
                     self.send_seq_number = (self.send_seq_number + 1) % 2
                     break
             except socket.timeout:
