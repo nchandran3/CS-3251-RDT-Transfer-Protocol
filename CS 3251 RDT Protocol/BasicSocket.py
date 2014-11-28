@@ -121,23 +121,16 @@ class RDTSocket:
 
 
     """
-    Send method. Takes in a filename and sends it as a byte stream. The amount of packets used will be
-                        (# bytes in file / MSS)  + 1
+    Send method. Takes in data and sends it as a byte stream. The amount of packets used will be
+                        (# bytes in data / MSS)  + 1
     The last packet sent will contain no data and indicates the end of the sending stream
     @param filename:    The filename that will be sent
     """
-    def send(self, filename):
-        try:
-            with open(filename) as file:
-                bytes_to_send = file.read()
-        except IOError:
-            print "Requested file doesn't exist"
-            return
-
+    def send(self, data):
         #Loop through creating a packet with MSS bytes of data and sending it
         byte_pointer = 0      #points to the first byte in the next packet to be sent
 
-        while byte_pointer + self.MSS < len(bytes_to_send):
+        while byte_pointer + self.MSS < len(data):
             data = bytes_to_send[byte_pointer: byte_pointer+self.MSS]
             packet = self.__makePacket(data)
             self.__send_packet(packet)      #packet is ensured to be successfully sent and ACK'd
@@ -176,7 +169,7 @@ class RDTSocket:
                 break
 
             data_bytes += packet.data   #add data to "disk"
-            self.__send_ACK_packet()
+            self.__send_ACK_packet(packet)
 
         return  data_bytes
 
@@ -209,8 +202,8 @@ class RDTSocket:
     """
     Sends an ACK packet without waiting for a timeout (implemented by receiving side only)
     """
-    def __send_ACK_packet(self):
-        ACK = self.__makeACKPacket()
+    def __send_ACK_packet(self, packet_to_ACK):
+        ACK = self.__makeACKPacket(packet_to_ACK)
         packet_string = pickle.dumps(ACK)
         print type(self.destIP)
         self.UDP_socket.sendto(packet_string, (self.destIP, self.destPort))
@@ -280,10 +273,10 @@ class RDTSocket:
 
 
 
-    def __makeACKPacket(self):
+    def __makeACKPacket(self, packet_to_ACK):
         packet = self.__makePacket(None)
         packet.ACK = True
-        packet.ack_num = self.send_seq_number
+        packet.ack_num = packet_to_ACK.seq_num
         return packet
 
 
