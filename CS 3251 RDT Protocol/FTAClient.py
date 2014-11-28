@@ -20,7 +20,7 @@ class FTAClient():
         self.emuPort = emuPort
         self.serverIPAddr = "127.0.0.1"            #Will be defined by connect() method
         self.serverPort = port + 1
-        self.connected = False              #Indicates whether the client is connected to the server at this time
+        self.CONNECTED = False              #Indicates whether the client is connected to the server at this time
 
         self.commands = ["connect", "get", "post", "window", "disconnect", "connect-get"]       #must contain all available commands
 
@@ -118,10 +118,13 @@ class FTAClient():
     """
     def connect(self, serverIP, port):
         d_print("Called connect with IP: " + serverIP + " and port: " + str(port))
-
+        if self.CONNECTED:
+            print "Already connected to a server!"
+            return
+        
         self.serverIPAddr, self.serverPort = serverIP, port
-        self.connected = True
         self.clientRDTSocket.connect(self.serverIPAddr, self.serverPort)
+        self.CONNECTED = True
 
 
 
