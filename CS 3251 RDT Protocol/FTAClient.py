@@ -24,7 +24,7 @@ class FTAClient():
 
         self.commands = ["connect", "get", "post", "window", "disconnect", "connect-get"]       #must contain all available commands
 
-        self.clientRDTSocket = RDTSocket(self.IPAddr, self.port)
+        self.clientRDTSocket = RDTSocket(self.IPAddr, self.port, emuIPAddr, emuPort)
 
 
     """

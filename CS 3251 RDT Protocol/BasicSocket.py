@@ -12,11 +12,13 @@ Non Extra credit socket class that just does stop and wait, checksum, and timeou
 """
 class RDTSocket:
 
-    def __init__(self, IPAddr, port):
-        self.srcPort = port
-        self.srcIP = IPAddr
+    def __init__(self, serverIPAddr, serverPort, emuIPAddr, emuPortNum):
+        self.srcPort = serverPort
+        self.srcIP = serverIPAddr
         self.destPort = None        #determined upon successful connection (either in connect or listen)
         self.destIP = None          #determined upon successful connection (either in connect or listen)
+        self.emuIP = emuIPAddr
+        self.emuPort = emuPortNum
         self.CONNECTED = False      #only set to true upon successful connection with server/client
         self.TERMINATED = False     #this indicates whether the CURRENT SOCKET is terminated. The other socket must also 
                                     #be terminated in order to have a successful termination
@@ -193,7 +195,7 @@ class RDTSocket:
         packet_string = pickle.dumps(packet)
 
         while ACK_packet == None:
-            self.UDP_socket.sendto(packet_string, (self.destIP, self.destPort))
+            self.UDP_socket.sendto(packet_string, (self.emuIP, self.emuPort))
 
             try:
                 recv_packet = self.__receive_packet()
