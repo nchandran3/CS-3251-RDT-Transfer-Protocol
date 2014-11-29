@@ -47,13 +47,13 @@ class RDTSocket:
 
         #send SYN packet to server
         SYN_packet = self.__makeSYNPacket()
-        self.__send_packet(SYN_packet)   #send the SYN packet
-        print "Sent SYN Packet"
+        print "Sending SYN Packet"
+        self.__send_packet(SYN_packet)   #send the SYN packet and wait for uncorrupted SYN-ACK
         #wait for uncorrupted ACK
-        ACK_packet  = self.__receive_packet()
         print "Received SYN-ACK"
+        
         #send last packet to acknowledge ACK packet received.
-        client_ACK_packet = self.__makeACKPacket()
+        client_ACK_packet = self.__makeACKPacket(SYN_packet)
         self.UDP_socket.sendto(pickle.dumps(client_ACK_packet), (self.destIP, self.destPort))
         print "Sent SYN-ACK response. Connection established"
         #we are done, begin transmission
@@ -190,16 +190,15 @@ class RDTSocket:
     Continues sending the packet in intervals of {self.timeout} seconds until a valid ACK is received
     """
     def __send_packet(self, packet):
-
+        print "Sending packet with data: ", packet.data
         ACK_packet = None
         packet_string = pickle.dumps(packet)
 
         while ACK_packet == None:
             self.UDP_socket.sendto(packet_string, (self.emuIP, self.emuPort))
-
             try:
                 recv_packet = self.__receive_packet()       #this is a UDP packet with serialized data
-                if recv_packet.ACK and recv_packet.ack_num == packet.ack_num:
+                if recv_packet.ACK and recv_packet.ack_num == packet.seq_num:
                     self.send_seq_number = (self.send_seq_number + 1) % 2
                     break
             except socket.timeout:
