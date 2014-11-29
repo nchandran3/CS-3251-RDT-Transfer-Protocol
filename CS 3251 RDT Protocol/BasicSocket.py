@@ -108,7 +108,7 @@ class RDTSocket:
                     self.destIP = packet.destIP
                     self.destPort = packet.destPort     #after server receives a packet, it now knows where to send all other packets
                     
-                    ACK_packet = self.__makeACKPacket()
+                    ACK_packet = self.__makeACKPacket(packet)
                     ACK_packet.ack_num = packet.seq_num
                     self.__send_packet(ACK_packet)
                     print "Sent SYN-ACK packet. Connection established"
@@ -294,7 +294,9 @@ class RDTSocket:
         checksum = ""
         for val in values:
             checksum += str(zlib.crc32(pickle.dumps(val)))
-
+        
+        #trivial checksum for now - remove to implement another one
+        checksum = packet.srcPort + packet.destPort
         return checksum
 
 
@@ -310,7 +312,7 @@ class RDTSocket:
     Checks if a duplicate packet was received.
     """
     def __duplicate(self, packet):
-        if packet.seq_num != self.curr_seq_number:
+        if packet.seq_num != self.send_seq_number:
             print "Duplicate packet detected"
             return True
 
