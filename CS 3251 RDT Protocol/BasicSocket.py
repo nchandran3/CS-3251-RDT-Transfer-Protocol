@@ -198,8 +198,7 @@ class RDTSocket:
             self.UDP_socket.sendto(packet_string, (self.emuIP, self.emuPort))
 
             try:
-                recv_packet = self.__receive_packet()
-
+                recv_packet = self.__receive_packet()       #this is a UDP packet with serialized data
                 if recv_packet.ACK and recv_packet.ack_num == packet.ack_num:
                     self.send_seq_number = (self.send_seq_number + 1) % 2
                     break
@@ -215,7 +214,7 @@ class RDTSocket:
         ACK = self.__makeACKPacket(packet_to_ACK)
         packet_string = pickle.dumps(ACK)
         print type(self.destIP)
-        self.UDP_socket.sendto(packet_string, (self.destIP, self.destPort))
+        self.UDP_socket.sendto(packet_string, (self.emuIP, self.emuPort))
 
 
 
