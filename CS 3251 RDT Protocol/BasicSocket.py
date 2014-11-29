@@ -24,7 +24,7 @@ class RDTSocket:
                                     #be terminated in order to have a successful termination
         self.OTHER_TERMINATED = False
 
-        self.timeout = 3            #default, will change according to max timeout received
+        self.timeout = 1            #default, will change according to max timeout received
         self.MSS = 1024             #max number of bytes an RDT packet payload can have
         self.BUFFER_SIZE = self.MSS + 1024    #need enough space for entire UDP datagram + data
         self.UDP_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)      #UDP socket for communicating with network emulator
@@ -141,7 +141,6 @@ class RDTSocket:
                     break 
                 
             except socket.timeout:
-                print "Socket timed out. Listening again"
                 continue
         
         print "Connected to client"
@@ -195,7 +194,9 @@ class RDTSocket:
         while True:
             try:
                 packet = self.__receive_packet()
-                print "Received packet: ", packet.data
+                if not packet:
+                    continue
+                print "\n\nReceived packet: ", packet.data
             except socket.timeout:
                 continue
             
@@ -204,16 +205,16 @@ class RDTSocket:
                 self.send_ACK_packet(packet)
                 break
             
-            elif packet.data == None:     #we have received the last packet of the message
+            elif packet.data == None and not packet.ACK:     #we have received the last packet of the message
                 print "Received entire message"
                 self.__send_ACK_packet(packet)
                 break
             
-            else:
+            elif not packet.ACK:
                 data_bytes += packet.data   #add data to "disk"
                 self.__send_ACK_packet(packet)
 
-        print "Received entire message: ", data_bytes
+        print "Received entire message!"
         
         if disconnect:
             self.disconnect()
@@ -229,13 +230,12 @@ class RDTSocket:
     Continues sending the packet in intervals of {self.timeout} seconds until a valid ACK is received
     """
     def __send_packet(self, packet):
-        print "Sending packet with data, sequence number, checksum: ", packet.data, "|", packet.seq_num, "|", packet.checksum
+        print "Sending packet with sequence number: ", packet.seq_num
         ACK_packet = None
         packet_string = pickle.dumps(packet)
 
         while ACK_packet == None:
             self.UDP_socket.sendto(packet_string, (self.emuIP, self.emuPort))
-            print "Expecting ACK with ack number: ", self.expected_seq_number
             try:
                 recv_packet = self.__receive_packet()       #this is a UDP packet with serialized data
                 if recv_packet:
@@ -270,15 +270,17 @@ class RDTSocket:
     def __receive_packet(self):
         self.UDP_socket.settimeout(self.timeout)
         packet_string, addr = self.UDP_socket.recvfrom(self.BUFFER_SIZE)
-        packet = pickle.loads(packet_string)
+        try:
+            packet = pickle.loads(packet_string)
 
-        if self.__uncorrupt(packet):
-            if not self.__duplicate(packet):
-                self.expected_seq_number = (packet.seq_num + 1) % 2
-                return packet
+            if self.__uncorrupt(packet):
+                if not self.__duplicate(packet):
+                    return packet
+                else:
+                    print "Received duplicate packet"
             else:
-                print "Duplicate packet detected with data:", packet.data
-        else:
+                print "Corrupted packet"
+        except:
             print "Corrupted packet"
 
         return None
@@ -326,6 +328,8 @@ class RDTSocket:
         packet = self.__makePacket(None)
         packet.ACK = True
         packet.ack_num = packet_to_ACK.seq_num
+        if packet.ack_num == self.expected_seq_number:
+            self.expected_seq_number = (self.expected_seq_number + 1) %2
         packet.checksum = self.__checksum(packet)
         return packet
 
@@ -355,7 +359,6 @@ class RDTSocket:
     Checks if a duplicate packet was received.
     """
     def __duplicate(self, packet):
-        return False        #take this out when detecting duplicates has been implemented
         if packet.seq_num != self.expected_seq_number:
             print "Duplicate packet detected"
             return True

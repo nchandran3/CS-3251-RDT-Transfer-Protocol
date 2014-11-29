@@ -153,6 +153,7 @@ class FTAClient():
         
         self.connect(self.serverIPAddr, self.serverPort)
         self.get(file)
+        self.terminate()
         
         
     """

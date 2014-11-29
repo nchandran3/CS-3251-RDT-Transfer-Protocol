@@ -1,13 +1,197 @@
-"Neque porro quisquam est qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit..."
-"There is no one who loves pain itself, who seeks after it and wants to have it, simply because it is pain..."
-
-Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.
-
-It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text, and a search for 'lorem ipsum' will uncover many web sites still in their infancy. Various versions have evolved over the years, sometimes by accident, sometimes on purpose (injected humour and the like).
-
- 
-Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia, looked up one of the more obscure Latin words, consectetur, from a Lorem Ipsum passage, and going through the cites of the word in classical literature, discovered the undoubtable source. Lorem Ipsum comes from sections 1.10.32 and 1.10.33 of "de Finibus Bonorum et Malorum" (The Extremes of Good and Evil) by Cicero, written in 45 BC. This book is a treatise on the theory of ethics, very popular during the Renaissance. The first line of Lorem Ipsum, "Lorem ipsum dolor sit amet..", comes from a line in section 1.10.32.
-
-The standard chunk of Lorem Ipsum used since the 1500s is reproduced below for those interested. Sections 1.10.32 and 1.10.33 from "de Finibus Bonorum et Malorum" by Cicero are also reproduced in their exact original form, accompanied by English versions from the 1914 translation by H. Rackham.
-
-There are many variations of passages of Lorem Ipsum available, but the majority have suffered alteration in some form, by injected humour, or randomised words which don't look even slightly believable. If you are going to use a passage of Lorem Ipsum, you need to be sure there isn't anything embarrassing hidden in the middle of text. All the Lorem Ipsum generators on the Internet tend to repeat predefined chunks as necessary, making this the first true generator on the Internet. It uses a dictionary of over 200 Latin words, combined with a handful of model sentence structures, to generate Lorem Ipsum which looks reasonable. The generated Lorem Ipsum is therefore always free from repetition, injected humour, or non-characteristic words etc.
+CS 3251 RTP Design Report
+Michael Carlson
+Email: miccarlson4@gmail.com
+Naveen Chandran
+Email: naveenkchandran@gmail.comFeature Maximum number of
+points
+Design report (due on OCTOBER 23) 20
+FTA application 10
+Successful non­pipelined operation without any network artifacts (the RTP
+packets should still go through NetEmu)
+30
+Pipelined operation (you will need to provide a “window W” command in
+FTA)
+10
+Able to recover from lost and duplicate packets 10
+Able to recover from corrupted packets 10
+Able to recover from out­of­order packets 15
+Able to do bi­directional data transfers 15
+Advanced checksum (must be more sophisticated than IP checksum) 5Overview
+The custom connection will begin by means of a three-way handshake between the
+client and the server. The protocol will account for lost packets by means of a retransmission
+timer; if the timer ever runs out, that specific packet will be resent. Corrupted packets will be
+dealt with using a CRC32 algorithm to compute the checksum, which is more sophisticated than
+the IPv4 checksum. The protocol will buffer packets and check each received packet against
+what it expects to receive in order to deal with duplicate and out of order packets. Once the
+server has received packet, it will flush the buffer and store the data internally. In order to
+combat skipped packets, a system of sequence numbers will be implemented; any duplicate
+sequence numbers (packets) will be dropped by the server or client. The ACK and buffering
+system works identically to the selective repeat method, where each individual packet is
+acknowledged by its sequence number. Bi-directional data transfer is not supported.Process Description
+I. Initial Connection
+The initial connection begins with the client sending a series of packets, which the
+server will acknowledge and respond to individually. The point of this handshake is to establish
+a constitution which both the server and client will agree to follow. Each packet sent during the
+process is specially flagged for this initial “handshake” in order to differentiate itself from
+regular data communication packets.
+The entire process is detailed below:
+*It is important to note that each packet sent fills out all header fields, as described by Figure 1.
+Each packet sent also adheres to the retransmission timer - if the packet is not ACKed within
+that time, then it is retransmitted.
+1. Initial Transmission of SYN Packet - The client begins by sending a packet
+flagged with the SYN flag. This indicates that the connection has not been
+established yet, and that the client wishes to initiate one. This SYN packet
+contains no message data, but does include the following crucial pieces of
+information about the connection:
+a. Client Initial Sequence Number - This is the initial sequence number that
+will be used by the client when delivering the data.
+b. Client Receiving Buffer Size - This indicates the maximum buffer size that
+the client can process for receiving data from the server (to provide full
+duplex communication).
+2. SYN Packet Acknowledgement by Server - Upon receiving the initial SYN packet
+from the client, the server will send back an ACK packet that includes the
+following information:
+a. Server Initial Sequence Number - This is the initial sequence number that
+will be used by the server (in order to facilitate bidirectional transfers).
+b. Server Receiving Buffer Size - This indicates the maximum buffer size that
+the server can process for receiving data from the client.
+3. Final ACK Packet by Client - After the previous packet is received from the
+server, the client sends one last packet to inform the server that it was
+transmitted successfully and that the client is still there. At this point the
+connection is open and both the server and client are ready for transmission of
+data.
+In Figure 1 and 2 are the state machines of the client side and server three-way handshake,
+respectively.Figure 1. State machine of Client during Three-way Handshake.Figure 2. State machine of Server during Three-way Handshake.
+II. Communication
+Once the initial connection has been established, the client and server are ready to
+exchange information. The process is fairly straightforward and consists of ACKing all received
+packets from the other side, while coupling any data into the ACK packets if needed. It is the
+same for both the sender and the receiver, except for the sequence and acknowledgement
+numbers that are sent.
+1. Prepare All Packets for Transmission - The client will split the entire message into
+segments of size M, which is the maximum segment size. It will then create the packets
+in intervals determined by the buffer size of the server by performing the following
+steps on each:
+a. Fill in the source IP address and port number - This is obtained from the
+application layer and does not change during transmission of the message.
+b. Determine destination IP address and port number - This is obtained from the
+application layer and does not change during transmission of the message.
+c. Fill in sequence number - This changes depending on whether the packet is a
+retransmission, or a normal send. In a retransmission, it takes the value of thelost packet in the buffer. In a normal send, it is the sequence number of the last
+packet sent (or the initial sequence number if we have reached the last sequence
+number).
+d. Fill in acknowledgement number (and ACK flag) - This is only set if the client is
+also receiving data from the server. It can only be set if the ACK flag is set to 1.
+The acknowledgement number is the sequence number of the packet that was
+received.
+e. Calculate checksum on header and data information - This uses the CRC32
+algorithm to provide an error prevention system.
+f. Store packet in buffer - The packet is now created and stored in the buffer in
+case a retransmission is needed.
+2. Send Queued Data Packets - This transmits the created packets to the server. The state
+machine of the sender can be seen in Figure 3.
+Figure 3. State machine of client or server sending data.
+3. Receive Packet - The client waits until either an ACK packet is received or a timeout
+event occurs. Upon reception of a non-duplicate ACK packet the client performs the
+following:a. Check for error - If the packet received contains an invalid sequence number for
+the packet or does not produce the sent checksum, the receiver does nothing.
+This will cause a timeout error on the other side and begin retransmission.
+b. Unbuffer ACKed packet - The client removes the packet from its send buffer with
+the sequence number that corresponds to the acknowledgement number
+received. If there is no acknowledgement received, then this step is not
+performed.
+c. Checks if the received packet contains data - If the received packet contains
+data, it places it into the receive buffer. It will then queue an ACK for this packet
+to be sent with the next packet of data being sent. If there is no data to be sent,
+send the ACK immediately.
+d. Flush receive buffer if necessary - If the packet received has completed the
+frame in the receive buffer, flush the information to internal storage.
+If the client encounters a timeout, it will retransmit the single packet that has
+timed out.Figure 4. State machine of receiver of data packets.
+III. Termination
+The termination process is initiated only by the client side and consists of a four-way
+handshake.
+The connection closing process is conducted in the following manner:
+1. TRM Packet Sent from Client Side - The client has finished sending its data and will
+send a packet with all the header information filled out and the TRM flag set.
+2. ACK from Opposite Side - The opposite side (which may or may not be done sending
+data) will acknowledge the TRM packet that was sent. At this point, the client can only
+receive data and will continue to do so until the next step occurs.
+3. TRM Packet Sent from Opposite Side - The server is now done sending data and sends
+the same type of TRM packet to the client.
+4. ACK Packet Sent from Closing Side - The client sends an ACK of the TRM packet it
+receives from the server and the connection is fully closed.
+Figure 5. State machine of Client side during connection termination.Figure 6. State machine of Server side during connection termination.Header and Header Fields
+Figure 7. Diagram depicting the makeup of the reliable data transfer protocol header. Each
+dash (-) represents one bit.
+The entire header will have a maximum size of 195 bits, depending on flags set.
+The header of each packet sent and received will contain the following fields:
+1. Checksum (16 bits) - This is computed by implementing the CRC32 algorithm on the
+data present in the payload as well as the header. It is checked by both the client and
+server to ensure that there was no data corruption either in the header or the payload.
+2. Source IP Address (32 bits) - Indicates the IP address of the sender.
+3. Source Port Number (16 bits) - This is sent with every packet to indicate where to send
+responses.
+4. Destination IP Address (32 bits) - Indicates the IP address of the receiver.
+5. Destination Port Number (16 bits)- This is used so that the receiver can forward the
+message to the correct port.
+6. Sequence Number (32 bits) - Each individual byte is given a unique sequence number
+for the current buffer. This field is only set when sending data. The number of sequence
+numbers used will be 2*buffer size.7. Acknowledgement Number (32 bits) - The acknowledgement number indicates what
+sequence number the receiver has successfully received. This field is only set when
+receiving data, and requires that the ACK flag is also set.
+8. Window size (16 bits) - This indicates the size of the buffer and is communicated
+between both the server and the client within each packet sent in order to determine
+the cardinality of sequence numbers and how many packets can be sent in any one
+instance. It is always greater than or equal to the maximum segment size (MSS).
+9. Flags
+a. ACK (1 bit) - If this flag is set, the packet is an acknowledgement for another
+packet and indicates that the packet with sequence number = acknowledgement
+number was received without error.
+b. SYN (1 bit) - This flag is used in the beginning of the connection to indicate that
+the data transferred is metadata, such as the buffersize, sequence numbers, etc.
+c. TRM (1 bit) - This flag indicates that the connection should be closed, and one
+packet will be sent by each party.Interface with Application Layer
+The reliable data transfer protocol allows the following methods to be called from the
+application layer in order to handle connectivity, termination, and reception / transmission of
+messages. It will allow for the use of four different functions that can be called at any time
+from the application layer:
+1. connect(dest_IP, dest_port): This function takes in the destination IP address of the
+server and the port that it will be communicating with. The function will check to see if
+the connection already exists in the first place, and then create a SYN packet with the
+necessary initial connection data from the client, such as the initial sequence number of
+the client and the client's receiving window size. It will send the SYN packet and start a
+timer (in order to check for timeouts). It then waits for an uncorrupted ACK packet to be
+received from the server and sets the server's initial sequence number to the data
+extracted from that field and sets its send window size to the window size extracted
+from the window size field. Finally it sends an ACK for the server's packet and returns
+the connection.
+2. listen(): This function causes the server-side application to block for any incoming SYN
+packets, which would be sent by a client who is trying to connect using the connect()
+method. It will receive the SYN packet, verify that the correct destination has been
+reached, and then send an ACK packet with the initial sequence number for the server
+and the window size of the server.
+3. disconnect(): This function disconnects the already established connection between the
+client and server. First, it sends a TRM packet to the server and waits for an ACK for that
+packet. It then continues to receive data until the client receives a TRM packet from the
+server, which indicates all data transmission is over. The client sends back an ACK packet
+and then starts a timer for 2x the current timeout time. If there is no duplicate TRM
+packet received during this time, the connection is officially closed. If there is a duplicate
+TRM packet received, it means that the last ACK sent was corrupted, so it will be resent
+and the 2x timer starts again. Finally, it returns success upon successful termination.
+4. send(msg): This function does numerous things. It first splits up the message into
+segments and creates a packet header for each, assigning sequence numbers and
+acknowledgement numbers if applicable. With each packet now created, it then
+transmits all of the packets in the current frame to the server while concurrently placing
+them in the send buffer. Each packet has a retransmission timer and will be individually
+retransmitted upon depletion of the timer. After sending out every packet, it listens foracknowledgements from the server using the receive method. It then continues to
+transmit packets until the entire message and all its frames have been transmitted.
+5. receive(): This function performs numerous checks as well. It initially accepts all
+incoming messages from the specified destination IP address and port. Each packet
+received is checked for corruption by computing the checksum and comparing it to the
+value in the checksum field. Each uncorrupted packet is sent an individual ACK, which
+may be coupled with data-rich packets in the case that bidirectional transfer is active. It
+then places these received packets into the receive buffer and checks for duplicates. If
+there is a duplicate, the packet is dropped. If the entire buffer is filled (indicating
+successful reception of an entire frame) then the buffer is flushed internally, meaning
+that the function returns the message received in order.
