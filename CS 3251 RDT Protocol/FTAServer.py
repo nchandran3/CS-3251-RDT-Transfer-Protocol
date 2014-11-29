@@ -24,7 +24,7 @@ class FTAServer():
         self.clientPort = None
         self.connected = False              #Indicates server/client connection
         self.commands = ["window", "terminate"]
-        self.rdtSocket = RDTSocket(self.IPAddr, self.port)
+        self.rdtSocket = RDTSocket(self.IPAddr, self.port, emuIPAddr, emuPort)
 
         ##testing code
 #         self.rdtSocket.destIP, self.rdtSocket.destPort = '127.0.0.1', 49154
