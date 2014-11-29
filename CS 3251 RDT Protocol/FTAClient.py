@@ -88,6 +88,7 @@ class FTAClient():
         Commands:
         -----------------------------
         connect-get f    Connects to server and downloads file {f} to client
+        disconnect     - Disconnect from the FTA Server and exit application
 
         """
         

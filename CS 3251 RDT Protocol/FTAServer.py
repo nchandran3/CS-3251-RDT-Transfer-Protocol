@@ -44,7 +44,7 @@ class FTAServer():
 
                     if data is not None:
                         data = data.lower()
-                        splitData = rcvData.split(":")
+                        splitData = data.split(":")
                         if(splitData[0] == "download" and len(splitData >= 2)):
                             filename = splitData[1]
                             self.clientDownload(filename)
