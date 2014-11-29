@@ -88,10 +88,15 @@ class RDTSocket:
             self.receive()
         
         elif self.TERMINATED:           #we have already terminated and just received a TRM packet from the other side 
+            try:
+                packet = self.__receive_packet()    #wait for a timeout
+            except: 
+                if packet != None:
+                    self.__send_ACK_packet(packet)
+                    self.receive()
             
             
-        
-
+            
 
         self.UDP_socket.close()
         self.CONNECTED = False
@@ -196,6 +201,7 @@ class RDTSocket:
             
             if packet.TRM:
                 disconnect = True
+                self.send_ACK_packet(packet)
                 break
             
             elif packet.data == None:     #we have received the last packet of the message
