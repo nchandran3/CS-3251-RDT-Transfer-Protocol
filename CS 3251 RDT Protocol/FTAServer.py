@@ -15,8 +15,8 @@ Functionality of File Transfer Application Server
 class FTAServer():
 
 
-    def __init__(self, serverPort, emuIPAddr, emuPort):
-        self.IPAddr = "127.0.0.1"
+    def __init__(self, serverIP, serverPort, emuIPAddr, emuPort):
+        self.IPAddr = serverIP
         self.port = serverPort
         self.emuIPAddr = emuIPAddr
         self.emuPort = emuPort
@@ -33,7 +33,7 @@ class FTAServer():
         not_terminate = True
         self.rdtSocket.listen()
         print "Connected to server"
-        
+
         while not_terminate:
             self.showCommands()
             not_terminate = self.__open()
@@ -84,10 +84,10 @@ class FTAServer():
         terminate      - Shuts down FTA-Server smoothly.
 
         """
-        
-        
-        
-        
+
+
+
+
     """
     Shows available client commands once the client has been started. Implements extra credit commands
     """
