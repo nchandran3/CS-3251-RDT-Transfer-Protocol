@@ -46,16 +46,20 @@ class RDTSocket:
         self.destPort = port
 
         #send SYN packet to server
-        SYN_packet = self.__makeSYNPacket()
         print "Sending SYN Packet"
+        SYN_packet = self.__makeSYNPacket()
         self.__send_packet(SYN_packet)   #send the SYN packet and wait for uncorrupted SYN-ACK
         #wait for uncorrupted ACK
         print "Received SYN-ACK"
         
         #send last packet to acknowledge ACK packet received.
-        client_ACK_packet = self.__makeACKPacket(SYN_packet)
-        self.UDP_socket.sendto(pickle.dumps(client_ACK_packet), (self.destIP, self.destPort))
-        print "Sent SYN-ACK response. Connection established"
+        print "Sending SYN-ACK response..."
+        final_packet = self.__makePacket(None)
+        self.__send_packet(final_packet)
+        
+        #client_ACK_packet = self.__makeACKPacket(SYN_packet)
+        #self.UDP_socket.sendto(pickle.dumps(client_ACK_packet), (self.destIP, self.destPort))
+        print "Received final ACK packet. Connection established"
         #we are done, begin transmission
 
 
@@ -94,30 +98,40 @@ class RDTSocket:
     SERVER METHOD ONLY!!!!!!!!
     Server call to block until a SYN packet is received, thus indicating intention to establish a connection.
     When this method returns, it means the server has successfully connected with a client
+    Step 0: receive a SYN packet
+    Step 1: keep sending SYN-ACK until next packet comes from client
     """
     def listen(self):
         print "Listening for client to connect"
         if self.CONNECTED:      #can only establish connection once
             print "Already connected to a client"
             return -1
-
+        
+        step = 0 #indicate which part of the listen loop we are in
         while True:
-            self.UDP_socket.settimeout(self.timeout)
             try:
                 packet = self.__receive_packet()
-                if packet.SYN:
+                if packet and packet.SYN and (step == 0 or step == 1):
                     print "Received SYN packet"
                     self.destIP = packet.destIP
                     self.destPort = packet.destPort     #after server receives a packet, it now knows where to send all other packets
+                 
+                    self.__send_ACK_packet(packet)
+                    step = 1
+                    print "Sent SYN-ACK packet."
                     
-                    ACK_packet = self.__makeACKPacket(packet)
-                    ACK_packet.ack_num = packet.seq_num
-                    self.__send_packet(ACK_packet)
-                    print "Sent SYN-ACK packet. Connection established"
+                elif packet and packet.data == None and (step == 1 or step == 2) :
+                    self.__send_ACK_packet(packet)
+                    step = 2
+                    
+                elif packet and packet.data != None and step == 2:  #we have received the first real packet
+                    break 
+                
             except socket.timeout:
                 print "Socket timed out. Listening again"
                 continue
-
+        
+        print "Connected to client"
         self.CONNECTED = True
         return True
 
@@ -190,14 +204,16 @@ class RDTSocket:
     Continues sending the packet in intervals of {self.timeout} seconds until a valid ACK is received
     """
     def __send_packet(self, packet):
-        print "Sending packet with data: ", packet.data
+        print "Sending packet with data and sequence number: ", packet.data, packet.seq_num
         ACK_packet = None
         packet_string = pickle.dumps(packet)
 
         while ACK_packet == None:
             self.UDP_socket.sendto(packet_string, (self.emuIP, self.emuPort))
+            print "Expecting ACK with ack number: ", self.expected_seq_number
             try:
                 recv_packet = self.__receive_packet()       #this is a UDP packet with serialized data
+                print "\t\tReceived packet with ack number: ", recv_packet.ack_num
                 if recv_packet.ACK and recv_packet.ack_num == packet.seq_num:
                     self.send_seq_number = (self.send_seq_number + 1) % 2
                     break
@@ -231,6 +247,7 @@ class RDTSocket:
 
         if self.__uncorrupt(packet):
             if not self.__duplicate(packet):
+                self.expected_seq_number = (packet.seq_num + 1) % 2
                 return packet
             else:
                 print "Duplicate packet detected"
@@ -309,7 +326,7 @@ class RDTSocket:
     Checks if a duplicate packet was received.
     """
     def __duplicate(self, packet):
-        if packet.seq_num != self.send_seq_number:
+        if packet.seq_num != self.expected_seq_number:
             print "Duplicate packet detected"
             return True
 
