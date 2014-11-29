@@ -134,9 +134,16 @@ class FTAClient():
     @param file - The full file name to download to the client
     @return    1 if successful;    -1 if not successful
     """
-    def get(self, file):
-        d_print("Called get with file name: " + file)
-        self.clientRDTSocket.send("Download:" + file)
+    def get(self, filename):
+        d_print("Called get with file name: " + filename)
+        self.clientRDTSocket.send("Download:" + filename)
+        file_bytes = self.clientRDTSocket.receive()
+        
+        if file_bytes != None:
+            with open(filename + "-client", "w") as file:
+                file.write(file_bytes)
+        else:
+            print "File did not exist"
 
 
 

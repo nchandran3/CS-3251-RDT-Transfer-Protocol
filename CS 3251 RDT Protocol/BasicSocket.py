@@ -23,9 +23,9 @@ class RDTSocket:
         self.TERMINATED = False     #this indicates whether the CURRENT SOCKET is terminated. The other socket must also 
                                     #be terminated in order to have a successful termination
 
-        self.timeout = 10            #default, will change according to max timeout received
+        self.timeout = 3            #default, will change according to max timeout received
         self.MSS = 1024             #max number of bytes an RDT packet payload can have
-        self.BUFFER_SIZE = self.MSS + 28    #there are 28 bytes in UDP datagram header
+        self.BUFFER_SIZE = self.MSS + 1024    #need enough space for entire UDP datagram + data
         self.UDP_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)      #UDP socket for communicating with network emulator
         self.UDP_socket.bind((self.srcIP, self.srcPort))
         self.send_seq_number = 0
@@ -206,7 +206,7 @@ class RDTSocket:
     Continues sending the packet in intervals of {self.timeout} seconds until a valid ACK is received
     """
     def __send_packet(self, packet):
-        print "Sending packet with data and sequence number: ", packet.data, packet.seq_num
+        print "Sending packet with data, sequence number, checksum: ", packet.data, "|", packet.seq_num, "|", packet.checksum
         ACK_packet = None
         packet_string = pickle.dumps(packet)
 
@@ -309,12 +309,11 @@ class RDTSocket:
 
         values = [packet.data, packet.srcIP, packet.srcPort, packet.destIP, packet.destPort, packet.seq_num, packet.ack_num,
                   packet.SYN, packet.ACK, packet.TRM]
-        checksum = ""
+        checksum = 0
         for val in values:
-            checksum += str(zlib.crc32(pickle.dumps(val)))
+            checksum += zlib.crc32(str(val))
         
         #trivial checksum for now - remove to implement another one
-        checksum = packet.srcPort + packet.destPort
         return checksum
 
 
@@ -323,6 +322,7 @@ class RDTSocket:
             return True
 
         print "Packet corrupted"
+        print "Computed checksum: ", self.__checksum(packet), "Expected: ", packet.checksum
         return False
 
 
