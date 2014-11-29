@@ -164,6 +164,7 @@ class RDTSocket:
         while True:
             try:
                 packet = self.__receive_packet()
+                print "Received packet: ", packet.data
             except socket.timeout:
                 continue
 

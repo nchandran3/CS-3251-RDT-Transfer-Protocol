@@ -135,7 +135,7 @@ class FTAClient():
     """
     def get(self, file):
         d_print("Called get with file name: " + file)
-        self.clientRDTSocket.send()
+        self.clientRDTSocket.send("Download:" + file)
 
 
 
