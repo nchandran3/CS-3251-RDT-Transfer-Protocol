@@ -113,6 +113,7 @@ class RDTSocket:
                     self.__send_packet(ACK_packet)
                     print "Sent SYN-ACK packet. Connection established"
             except socket.timeout:
+                print "Socket timed out. Listening again"
                 continue
 
         self.CONNECTED = True
@@ -225,20 +226,16 @@ class RDTSocket:
     """
     def __receive_packet(self):
         self.UDP_socket.settimeout(self.timeout)
-        try:
-            packet_string, addr = self.UDP_socket.recvfrom(self.BUFFER_SIZE)
-            packet = pickle.loads(packet_string)
+        packet_string, addr = self.UDP_socket.recvfrom(self.BUFFER_SIZE)
+        packet = pickle.loads(packet_string)
 
-#           print('received packet contents: ' + packet)
-            if self.__uncorrupt(packet):
-                if not self.__duplicate(packet):
-                    return packet
-                else:
-                    print "Duplicate packet detected"
+        if self.__uncorrupt(packet):
+            if not self.__duplicate(packet):
+                return packet
             else:
-                print "Corrupted packet"
-        except socket.timeout or socket.error, msg:
-            print'Timeout Occurred'
+                print "Duplicate packet detected"
+        else:
+            print "Corrupted packet"
 
         return None
 
