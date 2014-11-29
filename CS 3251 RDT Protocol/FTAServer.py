@@ -35,8 +35,8 @@ class FTAServer():
         print "Connected to server"
 
         while not_terminate:
-            self.showCommands()
-            not_terminate = self.__open()
+#             self.showCommands()
+#             not_terminate = self.__open()
             if not_terminate:
                 print("Waiting for incoming packet")
                 try:
