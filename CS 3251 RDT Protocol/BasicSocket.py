@@ -130,21 +130,21 @@ class RDTSocket:
     Send method. Takes in data and sends it as a byte stream. The amount of packets used will be
                         (# bytes in data / MSS)  + 1
     The last packet sent will contain no data and indicates the end of the sending stream
-    @param filename:    The filename that will be sent
+    @param data:    The data that will be sent (as a byte string)
     """
     def send(self, data):
         #Loop through creating a packet with MSS bytes of data and sending it
         byte_pointer = 0      #points to the first byte in the next packet to be sent
 
         while byte_pointer + self.MSS < len(data):
-            data = bytes_to_send[byte_pointer: byte_pointer+self.MSS]
-            packet = self.__makePacket(data)
+            bytes_to_send = data[byte_pointer: byte_pointer+self.MSS]
+            packet = self.__makePacket(bytes_to_send)
             self.__send_packet(packet)      #packet is ensured to be successfully sent and ACK'd
             byte_pointer += self.MSS
 
         #send last packet with data
-        data = bytes_to_send[byte_pointer:]
-        packet = self.__makePacket(data)
+        last_bytes = data[byte_pointer:]
+        packet = self.__makePacket(last_bytes)
         self.__send_packet(packet)
 
         #send empty packet to indicate end of data (we have successfully transmitted the entire file)
@@ -168,16 +168,14 @@ class RDTSocket:
             except socket.timeout:
                 continue
 
-#             print(packet)
-            packet = RDTPacket()                            ##FOR DEBUGGING
-            packet.data = '654654321s3dafsdf5a165a1sfa'     ##DEBUGGING
-#             print packet
             if packet.data == None:     #we have received the last packet
+                print "Received entire message"
                 break
 
             data_bytes += packet.data   #add data to "disk"
             self.__send_ACK_packet(packet)
 
+        print "Received entire message: ", data_bytes
         return  data_bytes
 
 
