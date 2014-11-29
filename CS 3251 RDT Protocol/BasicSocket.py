@@ -189,6 +189,7 @@ class RDTSocket:
 
             if packet.data == None:     #we have received the last packet of the message
                 print "Received entire message"
+                self.__send_ACK_packet(packet)
                 break
 
             data_bytes += packet.data   #add data to "disk"
