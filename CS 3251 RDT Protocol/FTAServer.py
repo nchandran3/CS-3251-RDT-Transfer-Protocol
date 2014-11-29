@@ -41,6 +41,13 @@ class FTAServer():
                 print("Waiting for incoming packet")
                 try:
                     rcvPacket = self.rdtSocket.receive()
+
+                    if rcvPacket.data is not None:
+                        rcvData = rcvPacket.data.lowercase
+                        splitData = rcvData.split(":")
+                        if(splitData[0] == "download" and len(splitData >= 2)):
+                            filename = splitData[1]
+                            self.clientDownload(filename)
                 except socket.error, msg:
                     print 'Failed to create socket. Error Code : ' + str(msg[0]) + ' Message ' + msg[1]
 
@@ -118,7 +125,13 @@ class FTAServer():
     def terminate(self):
         d_print("Connection terminated.")
 
-
+    def clientDownload(self, filename):
+        try:
+            with open(filename) as file:
+                bytes = file.read()
+            self.rdtSocket.send(bytes)
+        except IOError:
+            print "file does not exist.."
 
 #############################################################################################################
 ##################################    END    FTAServer   CLASS    ##########################################
