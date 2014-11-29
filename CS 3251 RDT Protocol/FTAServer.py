@@ -16,7 +16,7 @@ class FTAServer():
 
 
     def __init__(self, serverPort, emuIPAddr, emuPort):
-        self.IPAddr = serverIP
+        self.IPAddr = "127.0.0.1"
         self.port = serverPort
         self.emuIPAddr = emuIPAddr
         self.emuPort = emuPort
