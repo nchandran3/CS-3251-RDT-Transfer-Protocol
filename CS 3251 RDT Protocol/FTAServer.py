@@ -15,7 +15,7 @@ Functionality of File Transfer Application Server
 class FTAServer():
 
 
-    def __init__(self, serverIP, serverPort, emuIPAddr, emuPort):
+    def __init__(self, serverPort, emuIPAddr, emuPort):
         self.IPAddr = serverIP
         self.port = serverPort
         self.emuIPAddr = emuIPAddr
