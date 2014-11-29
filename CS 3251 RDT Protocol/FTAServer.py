@@ -40,10 +40,10 @@ class FTAServer():
             if not_terminate:
                 print("Waiting for incoming packet")
                 try:
-                    rcvPacket = self.rdtSocket.receive()
+                    data = self.rdtSocket.receive()
 
-                    if rcvPacket.data is not None:
-                        rcvData = rcvPacket.data.lowercase
+                    if data is not None:
+                        data = data.lower()
                         splitData = rcvData.split(":")
                         if(splitData[0] == "download" and len(splitData >= 2)):
                             filename = splitData[1]
@@ -131,7 +131,7 @@ class FTAServer():
                 bytes = file.read()
             self.rdtSocket.send(bytes)
         except IOError:
-            print "file does not exist.."
+            print "File does not exist.."
 
 #############################################################################################################
 ##################################    END    FTAServer   CLASS    ##########################################
