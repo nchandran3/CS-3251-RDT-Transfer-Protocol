@@ -32,6 +32,7 @@ class FTAServer():
     def start(self):
         not_terminate = True
         self.rdtSocket.listen()
+        print "Connected to server"
         
         while not_terminate:
             self.showCommands()
