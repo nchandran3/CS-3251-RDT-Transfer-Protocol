@@ -184,7 +184,7 @@ class FTAClient():
     """
     def terminate(self):
         d_print("Called terminate")
-        self.clientRDTSocket.terminate()
+        self.clientRDTSocket.disconnect()
 
 
 #############################################################################################################

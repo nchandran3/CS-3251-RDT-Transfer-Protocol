@@ -124,6 +124,7 @@ class FTAServer():
     """
     def terminate(self):
         d_print("Connection terminated.")
+        self.rdtSocket.disconnect()
 
     def clientDownload(self, filename):
         try:
