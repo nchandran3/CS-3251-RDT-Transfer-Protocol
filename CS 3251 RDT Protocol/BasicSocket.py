@@ -22,6 +22,7 @@ class RDTSocket:
         self.CONNECTED = False      #only set to true upon successful connection with server/client
         self.TERMINATED = False     #this indicates whether the CURRENT SOCKET is terminated. The other socket must also 
                                     #be terminated in order to have a successful termination
+        self.OTHER_TERMINATED = False
 
         self.timeout = 3            #default, will change according to max timeout received
         self.MSS = 1024             #max number of bytes an RDT packet payload can have
@@ -78,10 +79,16 @@ class RDTSocket:
         if not self.CONNECTED:      #we are already disconnected so just return
             return  
         
-        if not self.TERMINATED:     #if we haven't already sent our intention to quit
+        if not self.OTHER_TERMINATED and not self.TERMINATED:     #if we haven't already sent our intention to quit
             TRM_packet = self.__makeTRMPacket()
+            print "Sending TRM packet..."
             self.__send_packet(TRM_packet)
-            print "Sent TRM packet"
+            print "Received TRM-ACK"
+            self.TERMINATED = True
+            self.receive()
+        
+        elif self.TERMINATED:           #we have already terminated and just received a TRM packet from the other side 
+            
             
         
 
@@ -179,23 +186,33 @@ class RDTSocket:
     """
     def receive(self):
         data_bytes = ""
-
+        disconnect = False
         while True:
             try:
                 packet = self.__receive_packet()
                 print "Received packet: ", packet.data
             except socket.timeout:
                 continue
-
-            if packet.data == None:     #we have received the last packet of the message
+            
+            if packet.TRM:
+                disconnect = True
+                break
+            
+            elif packet.data == None:     #we have received the last packet of the message
                 print "Received entire message"
                 self.__send_ACK_packet(packet)
                 break
-
-            data_bytes += packet.data   #add data to "disk"
-            self.__send_ACK_packet(packet)
+            
+            else:
+                data_bytes += packet.data   #add data to "disk"
+                self.__send_ACK_packet(packet)
 
         print "Received entire message: ", data_bytes
+        
+        if disconnect:
+            self.disconnect()
+            return None
+        
         return  data_bytes
 
 
@@ -286,6 +303,7 @@ class RDTSocket:
     def __makeSYNPacket(self):
         packet = self.__makePacket(None)
         packet.SYN = True
+        packet.checksum = self.__checksum(packet)
         return packet
 
 
@@ -293,6 +311,7 @@ class RDTSocket:
     def __makeTRMPacket(self):
         packet = self.__makePacket(None)
         packet.TRM = True
+        packet.checksum = self.__checksum(packet)
         return packet
 
 
@@ -301,6 +320,7 @@ class RDTSocket:
         packet = self.__makePacket(None)
         packet.ACK = True
         packet.ack_num = packet_to_ACK.seq_num
+        packet.checksum = self.__checksum(packet)
         return packet
 
 
@@ -313,7 +333,6 @@ class RDTSocket:
         for val in values:
             checksum += zlib.crc32(str(val))
         
-        #trivial checksum for now - remove to implement another one
         return checksum
 
 
