@@ -94,6 +94,7 @@ class RDTSocket:
     When this method returns, it means the server has successfully connected with a client
     """
     def listen(self):
+        print "Listening for client to connect"
         if self.CONNECTED:      #can only establish connection once
             print "Already connected to a client"
             return -1
@@ -168,7 +169,7 @@ class RDTSocket:
             except socket.timeout:
                 continue
 
-            if packet.data == None:     #we have received the last packet
+            if packet.data == None:     #we have received the last packet of the message
                 print "Received entire message"
                 break
 
